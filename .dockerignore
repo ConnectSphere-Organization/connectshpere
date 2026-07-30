@@ -1,5 +1,3 @@
-node_modules
-dist
 .next
 .git
 .gitignore
@@ -7,8 +5,5 @@ dist
 .vscode
 .claude
 .gemini
-**/node_modules
-**/dist
 **/.next
 **/.env*
-**/*.tsbuildinfo

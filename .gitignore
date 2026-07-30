@@ -24,7 +24,9 @@ __pycache__/
 
 # misc
 .DS_Store
+.pnpm-store
 *.pem
+*.env.production
 
 # debug
 npm-debug.log*
@@ -32,9 +34,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env.local
+# env files & secrets
 .env
+.env.*
+!.env.example
+runtime-env/
+secrets/
 
 # typescript
 *.tsbuildinfo

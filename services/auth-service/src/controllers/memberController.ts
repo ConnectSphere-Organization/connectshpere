@@ -326,8 +326,24 @@ export const inviteTeamMember = async (req: AuthRequest, res: express.Response) 
 export const getMemberPermissions = async (req: AuthRequest, res: express.Response) => {
   try {
     const { memberId } = req.params;
-    const perm = await Permission.findOne({ workspace: req.workspace._id, user: memberId }).lean();
+    let perm: any = await Permission.findOne({ workspace: req.workspace._id, user: memberId }).lean();
     if (!perm) {
+      perm = await Permission.findOne({ _id: memberId, workspace: req.workspace._id }).lean();
+    }
+    if (!perm) {
+      const user: any = await User.findById(memberId).lean();
+      if (user) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            user: user._id,
+            workspace: req.workspace._id,
+            role: user.role || 'owner',
+            isActive: true,
+            permissions: []
+          }
+        });
+      }
       return res.status(404).json({ success: false, message: 'Member permissions not found' });
     }
     return res.status(200).json({ success: true, data: perm });

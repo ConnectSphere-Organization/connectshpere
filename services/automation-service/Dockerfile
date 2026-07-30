@@ -1,22 +1,11 @@
-FROM mirror.gcr.io/library/node:24-alpine AS builder
-WORKDIR /app
-COPY packages/contracts/package*.json ./packages/contracts/
-RUN cd packages/contracts && npm install
-COPY packages/contracts ./packages/contracts
-RUN cd packages/contracts && npm run build
-
-COPY services/automation-service/package*.json ./services/automation-service/
-RUN cd services/automation-service && npm install
-COPY services/automation-service ./services/automation-service
-RUN cd services/automation-service && npm run build
-
-FROM mirror.gcr.io/library/node:24-alpine AS runner
+FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=builder /app/packages/contracts ./packages/contracts
-COPY --from=builder /app/services/automation-service ./services/automation-service
+
+COPY packages/contracts ./packages/contracts
+COPY services/automation-service ./services/automation-service
+
 WORKDIR /app/services/automation-service
-RUN npm prune --omit=dev && rm -rf /usr/local/lib/node_modules/npm
 EXPOSE 3001
 USER node
 CMD ["node", "dist/index.js"]

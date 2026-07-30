@@ -1,22 +1,11 @@
-FROM mirror.gcr.io/library/node:24-alpine AS builder
-WORKDIR /app
-COPY packages/contracts/package*.json ./packages/contracts/
-RUN cd packages/contracts && npm install
-COPY packages/contracts ./packages/contracts
-RUN cd packages/contracts && npm run build
-
-COPY services/chat-service/package*.json ./services/chat-service/
-RUN cd services/chat-service && npm install
-COPY services/chat-service ./services/chat-service
-RUN cd services/chat-service && npm run build
-
-FROM mirror.gcr.io/library/node:24-alpine AS runner
+FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=builder /app/packages/contracts ./packages/contracts
-COPY --from=builder /app/services/chat-service ./services/chat-service
+
+COPY packages/contracts ./packages/contracts
+COPY services/chat-service ./services/chat-service
+
 WORKDIR /app/services/chat-service
-RUN npm prune --omit=dev && rm -rf /usr/local/lib/node_modules/npm
 EXPOSE 3008
 USER node
 CMD ["node", "dist/index.js"]

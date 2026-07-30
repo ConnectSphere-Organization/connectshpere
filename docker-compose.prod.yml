@@ -1,0 +1,338 @@
+networks:
+  connectsphere-network:
+    driver: bridge
+    name: connectsphere-network
+
+volumes:
+  redis_data:
+    driver: local
+
+services:
+  # --- Local Redis Infrastructure ---
+  redis:
+    image: redis:7-alpine
+    container_name: connectsphere-redis
+    restart: unless-stopped
+    command: >
+      sh -c '
+        if [ -n "$$REDIS_PASSWORD" ]; then
+          exec redis-server --requirepass "$$REDIS_PASSWORD" --maxmemory 96mb --maxmemory-policy allkeys-lru
+        else
+          exec redis-server --maxmemory 96mb --maxmemory-policy allkeys-lru
+        fi
+      '
+    env_file:
+      - ${RUNTIME_ENV_DIR:-/opt/connectsphere/runtime-env}/redis.env
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    volumes:
+      - redis_data:/data
+    networks:
+      - connectsphere-network
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'redis-cli -a \"$REDIS_PASSWORD\" ping 2>/dev/null | grep PONG || redis-cli ping 2>/dev/null | grep PONG || exit 0'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 3s
+
+  # --- API Gateway ---
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: connectsphere-api-gateway
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ${RUNTIME_ENV_DIR:-/opt/connectsphere/runtime-env}/api-gateway.env
+    environment:
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=96
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    networks:
+      - connectsphere-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:5001/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # --- Microservices ---
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: connectsphere-auth-service
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ${RUNTIME_ENV_DIR:-/opt/connectsphere/runtime-env}/auth-service.env
+    environment:
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=64
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+    networks:
+      - connectsphere-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3006/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  automation-service:
+    build:
+      context: .
+      dockerfile: services/automation-service/Dockerfile
+    container_name: connectsphere-automation-service
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ${RUNTIME_ENV_DIR:-/opt/connectsphere/runtime-env}/automation-service.env
+    environment:
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=128
+    deploy:
+      resources:
+        limits:
+          memory: 160M
+    networks:
+      - connectsphere-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3001/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  billing-service:
+    build:
+      context: .
+      dockerfile: services/billing-service/Dockerfile
+    container_name: connectsphere-billing-service
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ${RUNTIME_ENV_DIR:-/opt/connectsphere/runtime-env}/billing-service.env
+    environment:
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=56
+    deploy:
+      resources:
+        limits:
+          memory: 80M
+    networks:
+      - connectsphere-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3003/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  campaign-service:
+    build:
+      context: .
+      dockerfile: services/campaign-service/Dockerfile
+    container_name: connectsphere-campaign-service
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ${RUNTIME_ENV_DIR:-/opt/connectsphere/runtime-env}/campaign-service.env
+    environment:
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=64
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+    networks:
+      - connectsphere-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3002/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  chat-service:
+    build:
+      context: .
+      dockerfile: services/chat-service/Dockerfile
+    container_name: connectsphere-chat-service
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ${RUNTIME_ENV_DIR:-/opt/connectsphere/runtime-env}/chat-service.env
+    environment:
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=64
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+    networks:
+      - connectsphere-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3008/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  contact-service:
+    build:
+      context: .
+      dockerfile: services/contact-service/Dockerfile
+    container_name: connectsphere-contact-service
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ${RUNTIME_ENV_DIR:-/opt/connectsphere/runtime-env}/contact-service.env
+    environment:
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=56
+    deploy:
+      resources:
+        limits:
+          memory: 80M
+    networks:
+      - connectsphere-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3007/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  service-provider:
+    build:
+      context: .
+      dockerfile: services/service-provider/Dockerfile
+    container_name: connectsphere-service-provider
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ${RUNTIME_ENV_DIR:-/opt/connectsphere/runtime-env}/service-provider.env
+    environment:
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=80
+    deploy:
+      resources:
+        limits:
+          memory: 112M
+    networks:
+      - connectsphere-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3004/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+  webhook-ingestor:
+    build:
+      context: .
+      dockerfile: services/webhook-ingestor/Dockerfile
+    container_name: connectsphere-webhook-ingestor
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ${RUNTIME_ENV_DIR:-/opt/connectsphere/runtime-env}/webhook-ingestor.env
+    environment:
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=56
+    deploy:
+      resources:
+        limits:
+          memory: 80M
+    networks:
+      - connectsphere-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3013/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  websocket-gateway:
+    build:
+      context: .
+      dockerfile: services/websocket-gateway/Dockerfile
+    container_name: connectsphere-websocket-gateway
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ${RUNTIME_ENV_DIR:-/opt/connectsphere/runtime-env}/websocket-gateway.env
+    environment:
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=64
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+    networks:
+      - connectsphere-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3009/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # --- Reverse Proxy Ingress ---
+  nginx:
+    build:
+      context: .
+      dockerfile: deployment/nginx/Dockerfile
+    container_name: connectsphere-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api-gateway
+      - websocket-gateway
+      - webhook-ingestor
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - connectsphere-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:80/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

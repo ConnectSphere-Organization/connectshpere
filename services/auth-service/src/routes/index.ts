@@ -17,8 +17,7 @@ router.use('/workspace', workspaceRoutes);
 router.use('/workspace', teamRoutes);
 router.use('/workspace', roleRoutes);
 
-// Mount member routes at both / and /workspace for full backward compatibility
+// Mount member routes at / (memberRoutes contains both /workspace/members and /members)
 router.use('/', memberRoutes);
-router.use('/workspace', memberRoutes);
 
 export default router;

@@ -57,6 +57,15 @@ const nextConfig: NextConfig = {
   async rewrites() {
     const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:5001';
     return [
+      // WebSocket Gateway routes
+      {
+        source: '/socket.io/:path*',
+        destination: `${backendUrl}/socket.io/:path*`,
+      },
+      {
+        source: '/socket.io',
+        destination: `${backendUrl}/socket.io`,
+      },
       // API v1 routes
       {
         source: '/api/v1/automation/:path*',

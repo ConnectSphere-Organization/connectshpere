@@ -33,18 +33,24 @@ router.post('/workspace/members/invite', businessAuthMiddleware, inviteTeamMembe
 router.post('/members/invite', businessAuthMiddleware, inviteTeamMember);
 
 // Member actions
+router.get('/workspace/members/:memberId/permissions', businessAuthMiddleware, getMemberPermissions);
+router.get('/workspace/members/:memberId', businessAuthMiddleware, getMemberPermissions);
 router.get('/workspace/team/members/:memberId/permissions', businessAuthMiddleware, getMemberPermissions);
 router.get('/members/:memberId/permissions', businessAuthMiddleware, getMemberPermissions);
 
+router.patch('/workspace/members/:memberId/permissions', businessAuthMiddleware, updateMemberPermissions);
 router.patch('/workspace/team/members/:memberId/permissions', businessAuthMiddleware, updateMemberPermissions);
 router.patch('/members/:memberId/permissions', businessAuthMiddleware, updateMemberPermissions);
 
+router.patch('/workspace/members/:memberId/role', businessAuthMiddleware, updateMemberRoleQuick);
 router.patch('/workspace/team/members/:memberId/role', businessAuthMiddleware, updateMemberRoleQuick);
 router.patch('/members/:memberId/role', businessAuthMiddleware, updateMemberRoleQuick);
 
+router.patch('/workspace/members/:memberId', businessAuthMiddleware, updateMemberRecord);
 router.patch('/workspace/team/members/:memberId', businessAuthMiddleware, updateMemberRecord);
 router.patch('/members/:memberId', businessAuthMiddleware, updateMemberRecord);
 
+router.delete('/workspace/members/:memberId', businessAuthMiddleware, removeWorkspaceMember);
 router.delete('/workspace/team/members/:memberId', businessAuthMiddleware, removeWorkspaceMember);
 router.delete('/members/:memberId', businessAuthMiddleware, removeWorkspaceMember);
 
