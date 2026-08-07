@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
-import { isPublicCustomerRoute } from '@/lib/public-routes';
+import { isCustomerPortalUnavailable, isPublicCustomerRoute } from '@/lib/public-routes';
+import { getCustomerPortalStatus } from '@/lib/api/service-status';
 
 export function AuthInitializer() {
     const pathname = usePathname();
@@ -23,14 +24,31 @@ export function AuthInitializer() {
         };
 
         const loadSession = async (force = false) => {
-            const session = await fetchSession(force);
+            let session;
+            try {
+                session = await fetchSession(force);
+            } catch (error: any) {
+                if (error?.response?.status === 503 && error?.response?.data?.error === 'MAINTENANCE_MODE') {
+                    router.replace('/maintenance');
+                    return;
+                }
+                throw error;
+            }
+            if (session && isCustomerPortalUnavailable(session.systemStatus)) {
+                router.replace('/maintenance');
+                return;
+            }
             if (!session?.authenticated) {
                 redirectToLogin();
             }
         };
 
         loadSession();
-        
+
+        getCustomerPortalStatus().then((status) => {
+            if (active && status.statusKnown === true && status.available === false) router.replace('/maintenance');
+        }).catch(() => undefined);
+
         const handleAuthChange = () => {
             loadSession(true);
         };

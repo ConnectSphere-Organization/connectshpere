@@ -44,6 +44,7 @@ router.post('/signup/verify-otp', verifySignupOtp);
 router.post('/resend-signup-otp', signup);
 
 /* ---------------------------------- Login --------------------------------- */
+router.get('/login', (req, res) => res.status(200).json({ success: true, message: 'Auth login endpoint active. Use POST to submit credentials.' }));
 router.post('/login', login);
 router.post('/logout', logout);
 router.get('/logout', logout);

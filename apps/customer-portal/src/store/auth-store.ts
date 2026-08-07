@@ -220,6 +220,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 return sessionData;
             } catch (err: any) {
                 const status = err?.response?.status || err?.status;
+                if (status === 503 && err?.response?.data?.error === 'MAINTENANCE_MODE') {
+                    set({ loading: false, inFlightPromise: null });
+                    throw err;
+                }
                 if (status !== 401 && status !== 402) {
                     console.error('[AuthStore] Session fetch failed:', err);
                 }

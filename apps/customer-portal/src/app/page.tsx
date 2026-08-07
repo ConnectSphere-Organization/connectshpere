@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { ArrowUp } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAuthStore } from '@/store/auth-store';
+import { isCustomerPortalUnavailable } from '@/lib/public-routes';
+import { getCustomerPortalStatus } from '@/lib/api/service-status';
 import FlashLoader from '@/components/ui/flash-loader';
 
 // Modular Components
@@ -25,16 +27,21 @@ import BottomCTA from '@/components/landing/bottom-cta'
 export default function HomePage() {
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
-  const { authenticated, loading: authContextLoading, fetchSession, accessRestriction, nextStep } = useAuthStore()
+  const { authenticated, loading: authContextLoading, fetchSession, accessRestriction, nextStep, systemStatus } = useAuthStore()
 
   const [mounted, setMounted] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
+  const [portalUnavailable, setPortalUnavailable] = useState(false)
   const isDark = resolvedTheme === 'dark';
 
   // Wait until mounted to avoid hydration errors
   useEffect(() => {
     setMounted(true)
     fetchSession()
+    getCustomerPortalStatus().then((status) => {
+      setPortalUnavailable(status.statusKnown === true && status.available === false)
+      if (status.statusKnown === true && status.available === false) router.replace('/maintenance')
+    }).catch(() => undefined)
   }, [fetchSession])
 
   // Auto-redirect authenticated users to dashboard
@@ -46,6 +53,12 @@ export default function HomePage() {
       }
     }
   }, [accessRestriction, authenticated, authContextLoading, nextStep, router, mounted])
+
+  useEffect(() => {
+    if (mounted && !authContextLoading && isCustomerPortalUnavailable(systemStatus)) {
+      router.replace('/maintenance');
+    }
+  }, [authContextLoading, mounted, router, systemStatus])
 
   // Handle scroll events for "scroll to top" button
   useEffect(() => {
@@ -62,6 +75,10 @@ export default function HomePage() {
   if (authContextLoading || !mounted) return <FlashLoader />;
 
   // Prevent flash while redirecting
+  if (portalUnavailable || isCustomerPortalUnavailable(systemStatus)) {
+    return null;
+  }
+
   if (authenticated && (accessRestriction?.targetPath || nextStep || '/dashboard') !== '/') {
     return null;
   }

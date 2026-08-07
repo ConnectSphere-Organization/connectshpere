@@ -4,6 +4,7 @@ const PUBLIC_ENTRY_ROUTES = new Set([
   '/auth/register',
   '/privacy',
   '/terms',
+  '/maintenance',
 ]);
 
 const AUTH_FLOW_ROUTES = new Set([
@@ -31,4 +32,10 @@ export function isPublicCustomerRoute(pathname: string | null | undefined) {
 export function isAuthEntryRoute(pathname: string | null | undefined) {
   const route = normalizeRoutePath(pathname);
   return route === '/auth/login' || route === '/auth/register';
+}
+
+export function isCustomerPortalUnavailable(systemStatus: unknown) {
+  const control = (systemStatus as { features?: { serviceControls?: Record<string, { published?: boolean; maintenance?: boolean }> } } | null)
+    ?.features?.serviceControls?.['customer-portal'];
+  return control?.published === false || control?.maintenance === true;
 }

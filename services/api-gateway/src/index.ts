@@ -114,6 +114,9 @@ function serviceIdsForPath(path: string): string[] {
   if (path.startsWith('/api/v1/campaign') || path.startsWith('/api/v1/ads')) return ['campaign'];
   if (path.startsWith('/api/v1/automation') || path.startsWith('/api/v1/flows') || path.startsWith('/api/v1/widget') || path.startsWith('/api/v1/developer') || path.startsWith('/api/v1/external') || path.startsWith('/api/v1/integrations')) return ['automation'];
   if (path.startsWith('/api/v1/onboarding') || path.startsWith('/api/v1/templates') || path.startsWith('/api/v1/upload') || path.startsWith('/api/v1/workspace/waba') || path.startsWith('/api/v1/workspace/profile') || path.startsWith('/api/v1/workspace/webhooks') || path.startsWith('/api/v1/workspace/whatsapp') || path.startsWith('/api/v1/workspace/settings/waba') || path.startsWith('/api/v1/workspace/phone-numbers') || path.startsWith('/api/v1/workspace/connection-status')) return ['bsp'];
+  if (path.startsWith('/api/v1/settings/api-keys') || path.startsWith('/api/v1/settings/integrations')) return ['automation'];
+  if (path.startsWith('/api/v1/settings/billing')) return ['billing'];
+  if (path.startsWith('/api/v1/auth') || path.startsWith('/api/v1/business') || path.startsWith('/api/v1/settings') || path.startsWith('/api/v1/workspace') || path.startsWith('/api/v1/inbox/settings')) return ['auth'];
   return [];
 }
 
@@ -309,6 +312,21 @@ app.use('/api/v1', (req, res, next) => {
       message: `${feature.replaceAll('_', ' ').toLowerCase()} is disabled`,
       requestId: req.headers['x-correlation-id'] || null,
     },
+  });
+});
+
+// Public frontend status check. The customer portal uses this before login so
+// a frontend-level maintenance toggle cannot be bypassed by visiting `/`.
+app.get('/api/public/service-status', async (_req, res) => {
+  const controls = await getServiceControls();
+  const control = controls['customer-portal'] || {};
+  return res.json({
+    service: 'customer-portal',
+    statusKnown: true,
+    available: control.published !== false && control.maintenance !== true,
+    maintenance: control.maintenance === true,
+    published: control.published !== false,
+    message: control.message || '',
   });
 });
 
