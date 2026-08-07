@@ -1,176 +1,55 @@
-# ConnectSphere Hybrid Production Deployment Guide
+# ConnectSphere Production Deployment Guide
 
-This guide details the complete production deployment architecture for **ConnectSphere**:
-1. **Frontend Applications (`apps/`)**: Deployed on **Vercel** (`customer-portal`, `admin-portal`, `career-portal`).
-2. **Backend Microservices Stack (`services/`)**: Deployed on **Microsoft Azure Linux VM (Ubuntu 24.04 LTS)** using **Docker Compose**, **Nginx Ingress**, **Local Redis Container**, **External MongoDB Atlas**, and **Azure Key Vault** via **System-Assigned Managed Identity**.
+ConnectSphere now uses a Kubernetes-first deployment model based on GitHub Actions, Azure Container Registry, Helm, and Argo CD.
 
----
+## Supported deployment path
 
-## 1. System Architecture Diagram
+1. Frontends (`apps/customer-portal`, `apps/admin-portal`, `apps/career-portal`) continue to deploy to Vercel.
+2. Backend services and portals are built and published as container images from GitHub Actions.
+3. The GitOps workflow updates a Helm values file in a separate GitOps repository.
+4. Argo CD synchronizes the release into AKS.
 
-```
-                        [ Users / Web Browsers ]
-                                   |
-                                   v
-             +---------------------+---------------------+
-             |         Frontend Tier (Vercel)            |
-             |                                           |
-    [ customer-portal ]     [ admin-portal ]     [ career-portal ]
-     customer.wapi.in        admin.wapi.in        careers.wapi.in
-             +---------------------+---------------------+
-                                   |
-                             HTTPS API Calls
-                                   |
-                                   v
-                      [ Azure VM: Ports 80 / 443 ]
-                        [ Nginx Ingress Container ]
-                                   |
-                         [ api-gateway:5001 ]
-                                   |
-     +-----------------------------+-----------------------------+
-     |                             |                             |
-[ auth-service ]           [ chat-service ]           [ contact-service ]
-   Port 3006                      Port 3008                      Port 3007
-     |                             |                             |
-[ campaign-service ]       [ billing-service ]       [ automation-service ]
-   Port 3002                      Port 3003                      Port 3001
-     |                             |                             |
-[ service-provider ]       [ webhook-ingestor ]      [ websocket-gateway ]
-   Port 3004                      Port 3013                      Port 3009
-     +-----------------------------+-----------------------------+
-                                   |
-            +----------------------+----------------------+
-            |                                             |
-            v                                             v
-[ Local Redis Container ]                    [ External MongoDB Atlas ]
- Port 6379 (Private Network)                     Cluster Connection URI
+The previous VM + Docker Compose deployment path is retired and should no longer be used for production.
+
+## Architecture
+
+```text
+Developers -> GitHub Actions -> ACR -> GitOps repo -> Argo CD -> AKS -> Helm release
 ```
 
----
+## GitHub Actions workflow
 
-## 2. Vercel Deployment Instructions (Frontend Apps)
+Use the workflow at [.github/workflows/deploy-aks-gitops.yml](.github/workflows/deploy-aks-gitops.yml).
 
-Each frontend application inside the `apps/` directory is deployed to Vercel as a Next.js project.
+Required repository variables:
+- `ACR_NAME`
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_SUBSCRIPTION_ID`
+- `GITOPS_REPO`
 
-### App 1: `apps/customer-portal`
-- **Root Directory**: `apps/customer-portal`
-- **Framework Preset**: Next.js
-- **Environment Variables on Vercel**:
-  - `BACKEND_API_URL`: `https://api.yourdomain.com` (Your Azure VM Nginx/API Gateway domain)
-  - `NEXT_PUBLIC_APP_NAME`: `ConnectSphere`
-  - `NEXT_PUBLIC_API_URL`: `/api`
-  - `NEXT_PUBLIC_SOCKET_URL`: `https://api.yourdomain.com`
-  - `NEXT_PUBLIC_GOOGLE_CLIENT_ID`: `your-google-client-id`
-  - `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED`: `true`
+Required secrets:
+- `GITOPS_TOKEN`
 
-### App 2: `apps/admin-portal`
-- **Root Directory**: `apps/admin-portal`
-- **Framework Preset**: Next.js
-- **Environment Variables on Vercel**:
-  - `GATEWAY_URL`: `https://api.yourdomain.com`
-  - `INTERNAL_SERVICE_SECRET`: `same-secret-as-keyvault`
-  - `MONGODB_URI`: `mongodb+srv://...` (MongoDB Atlas URI)
-  - `JWT_SECRET`: `same-secret-as-keyvault`
-  - `ADMIN_COOKIE_NAME`: `admin_token`
-  - `CUSTOMER_PORTAL_URL`: `https://customer.yourdomain.com`
+## Helm and GitOps
 
-### App 3: `apps/career-portal`
-- **Root Directory**: `apps/career-portal`
-- **Framework Preset**: Next.js
-- **Environment Variables on Vercel**:
-  - `MONGODB_URI`: `mongodb+srv://...` (MongoDB Atlas URI)
-  - `BETTER_AUTH_SECRET`: `high-entropy-random-secret-32-chars`
-  - `BETTER_AUTH_URL`: `https://careers.yourdomain.com`
-  - `APP_URL`: `https://careers.yourdomain.com`
-  - `CONTRACT_ENCRYPTION_KEY`: `base64-32-bytes`
-  - `WEBHOOK_ENCRYPTION_KEY`: `base64-32-bytes`
+The chart lives in [deploy/helm/connectsphere](deploy/helm/connectsphere) and the production values file is in [deploy/gitops/production-values.yaml](deploy/gitops/production-values.yaml).
 
----
+The deployment flow is:
+- build container images for each service/portal
+- push them to ACR
+- update the Helm values in the GitOps repository
+- let Argo CD deploy the new image tags into AKS
 
-## 3. Azure Infrastructure Setup (Backend Tier)
+## Rollback
 
-### Hardware & VM Allocation
-- **Subscription**: Azure for Students
-- **VM**: Ubuntu 24.04 LTS (x86_64), 2 vCPU, ~892 MB physical RAM, 61 GB disk, 2 GB swap.
-- **Hosted Services**: 10 backend Node.js microservices + Redis container + Nginx ingress.
+Rollback is handled through Argo CD or by reverting the image tag change in the GitOps repository and letting Argo CD reconcile the change.
 
-### Step 1: Run Azure Managed Identity Setup
-On the Azure VM:
+## Deprecated assets
 
-```bash
-chmod +x scripts/*.sh
-./scripts/setup-azure.sh "connectsphere-kv" "connectsphere-rg" "eastus"
-```
+The following are intentionally retired for production:
+- [scripts/deploy.sh](scripts/deploy.sh)
+- [scripts/setup-azure.sh](scripts/setup-azure.sh)
+- [.github/workflows/deploy.yml](.github/workflows/deploy.yml)
 
----
-
-## 4. Key Vault Secret Inventory
-
-| Key Vault Secret Name | Service Variable | Description |
-| :--- | :--- | :--- |
-| `shared--JWT-SECRET` | `JWT_SECRET` | Token signing secret across microservices |
-| `shared--INTERNAL-SERVICE-SECRET` | `INTERNAL_SERVICE_SECRET` | Inter-service auth bearer secret |
-| `shared--INTEGRATION-ENCRYPTION-KEY` | `INTEGRATION_ENCRYPTION_KEY` | Provider credential encryption key |
-| `shared--REDIS-PASSWORD` | `REDIS_PASSWORD` | Redis container authentication password |
-| `shared--MONGODB-URI` | `MONGO_URI` | MongoDB Atlas cluster connection URI |
-| `shared--ALLOWED-ORIGINS` | `ALLOWED_ORIGINS` | Comma-separated Vercel app URLs (e.g. `https://*.vercel.app,https://app.yourdomain.com`) |
-| `auth--SMTP-PASS` | `SMTP_PASS` | Auth service SMTP password |
-| `auth--GOOGLE-CLIENT-SECRET` | `GOOGLE_CLIENT_SECRET` | Auth service Google OAuth secret |
-| `automation--META-ADS-CLIENT-SECRET` | `META_ADS_CLIENT_SECRET` | Meta Ads OAuth client secret |
-| `billing--RAZORPAY-KEY-SECRET` | `RAZORPAY_KEY_SECRET` | Razorpay API key secret |
-| `billing--RAZORPAY-WEBHOOK-SECRET` | `RAZORPAY_WEBHOOK_SECRET` | Razorpay webhook secret |
-| `bsp--GUPSHUP-CLIENT-SECRET` | `GUPSHUP_PARTNER_CLIENT_SECRET` | Gupshup partner API secret |
-| `bsp--GUPSHUP-PASSWORD` | `GUPSHUP_PARTNER_PASSWORD` | Gupshup partner password |
-| `bsp--GUPSHUP-WEBHOOK-SECRET` | `GUPSHUP_WEBHOOK_SECRET` | Gupshup webhook verification secret |
-| `webhook--WEBHOOK-SECRET` | `WEBHOOK_SECRET` | Ingestor payload signature secret |
-| `webhook--VERIFY-TOKEN` | `VERIFY_TOKEN` | Ingestor challenge verification token |
-
-### Migrating Secrets to Key Vault
-```bash
-./scripts/migrate-secrets-to-keyvault.sh "connectsphere-kv"
-```
-
----
-
-## 5. Backend Memory Optimization (~892 MB RAM)
-
-By shifting frontends to Vercel, the Azure VM memory footprint is significantly reduced:
-
-| Service / Container | `NODE_OPTIONS` Heap Limit | Container RAM Limit (`mem_limit`) |
-| :--- | :--- | :--- |
-| `redis` | N/A (`maxmemory 96mb`) | `128M` |
-| `api-gateway` | `--max-old-space-size=96` | `128M` |
-| `auth-service` | `--max-old-space-size=64` | `96M` |
-| `automation-service` | `--max-old-space-size=64` | `96M` |
-| `billing-service` | `--max-old-space-size=56` | `80M` |
-| `campaign-service` | `--max-old-space-size=64` | `96M` |
-| `chat-service` | `--max-old-space-size=64` | `96M` |
-| `contact-service` | `--max-old-space-size=56` | `80M` |
-| `service-provider` | `--max-old-space-size=80` | `112M` |
-| `webhook-ingestor` | `--max-old-space-size=56` | `80M` |
-| `websocket-gateway` | `--max-old-space-size=64` | `96M` |
-| `nginx` | N/A | `64M` |
-
-Total Memory Allocation: ~980 MB peak across all 12 backend containers.
-
----
-
-## 6. Azure Deployment Execution
-
-To deploy or update backend microservices on the VM:
-
-```bash
-./scripts/deploy.sh "connectsphere-kv"
-```
-
-### Verification & Operations
-```bash
-# Check container status
-docker compose -f docker-compose.prod.yml ps
-
-# Monitor live VM memory utilization
-free -h
-
-# Check logs
-docker compose -f docker-compose.prod.yml logs -f api-gateway
-```
+Use the AKS/GitOps workflow for all new deployments.

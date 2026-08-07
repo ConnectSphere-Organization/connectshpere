@@ -1,107 +1,17 @@
-name: ConnectSphere Automated Production CI/CD
+name: Deprecated VM Deployment
 
 on:
-  push:
-    branches: [ main, master ]
   workflow_dispatch:
+  push:
+    branches: [main, master]
 
 jobs:
-  build-and-deploy-backend:
-    name: 🚀 Build & Deploy Microservices to Azure VM
+  deprecated:
+    name: VM-based deployment has been retired
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build Contracts Package
+      - name: Warn about the retired deployment path
         run: |
-          cd packages/contracts
-          npm ci
-          npm run build
-
-      - name: Pre-compile All Microservices TypeScript
-        run: |
-          for s in services/*; do
-            if [ -f "$s/package.json" ]; then
-              echo "Pre-compiling $s..."
-              (cd "$s" && npm ci --include=dev && npm run build && npm prune --production) || exit 1
-            fi
-          done
-
-      - name: Deploy Microservices to Azure VM
-        env:
-          SSH_KEY: ${{ secrets.VM_SSH_KEY }}
-          VM_HOST: ${{ secrets.VM_HOST || '4.240.63.35' }}
-          VM_USER: ${{ secrets.VM_USER || 'azureuser' }}
-        run: |
-          if [ -z "$SSH_KEY" ]; then
-            echo "❌ ERROR: VM_SSH_KEY secret is not set in GitHub repository settings!"
-            exit 1
-          fi
-
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/vm_key.pem
-          chmod 600 ~/.ssh/vm_key.pem
-
-          SSH_CMD="ssh -o StrictHostKeyChecking=no -i ~/.ssh/vm_key.pem $VM_USER@$VM_HOST"
-          RSYNC_CMD="rsync -avz -e \"ssh -o StrictHostKeyChecking=no -i ~/.ssh/vm_key.pem\""
-
-          echo "📦 Syncing codebase & pre-compiled artifacts to Azure VM..."
-          eval $RSYNC_CMD --exclude '.git' --exclude 'node_modules' ./ $VM_USER@$VM_HOST:~/connectsphere/
-
-          echo "🚀 Recreating backend microservice containers on Azure VM..."
-          $SSH_CMD "cd ~/connectsphere && chmod +x scripts/*.sh && bash ./scripts/load-secrets.sh 'connectsphere-kv' && docker compose -f docker-compose.prod.yml up -d --build --remove-orphans"
-
-  deploy-frontends:
-    name: 🌐 Deploy Frontends to Vercel
-    runs-on: ubuntu-latest
-    needs: build-and-deploy-backend
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
-
-      - name: Deploy Customer Portal
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          if [ -n "$VERCEL_TOKEN" ]; then
-            cd apps/customer-portal
-            vercel --token $VERCEL_TOKEN --prod --yes
-          else
-            echo "⚠️ VERCEL_TOKEN secret not set. Skipping Customer Portal Vercel deployment."
-          fi
-
-      - name: Deploy Admin Portal
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          if [ -n "$VERCEL_TOKEN" ]; then
-            cd apps/admin-portal
-            vercel --token $VERCEL_TOKEN --prod --yes
-          else
-            echo "⚠️ VERCEL_TOKEN secret not set. Skipping Admin Portal Vercel deployment."
-          fi
-
-      - name: Deploy Career Portal
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          if [ -n "$VERCEL_TOKEN" ]; then
-            cd apps/career-portal
-            vercel --token $VERCEL_TOKEN --prod --yes
-          else
-            echo "⚠️ VERCEL_TOKEN secret not set. Skipping Career Portal Vercel deployment."
-          fi
+          echo "The VM-based deployment workflow is no longer active."
+          echo "ConnectSphere now uses GitHub Actions -> ACR -> GitOps repo -> Argo CD -> AKS with Helm."
+          echo "Use .github/workflows/deploy-aks-gitops.yml for production deployments."

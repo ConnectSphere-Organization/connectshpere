@@ -13,9 +13,32 @@ export function AuthInitializer() {
     const isPublicRoute = isPublicCustomerRoute(pathname);
 
     useEffect(() => {
-        if (isPublicRoute) return;
-
         let active = true;
+
+        // The maintenance page must be reachable while the portal is down,
+        // but every other public entry point still needs to be protected.
+        // This covers `/`, `/auth/login`, and `/auth/register` before login.
+        if (pathname === '/maintenance') return () => {
+            active = false;
+        };
+
+        const checkPortalAvailability = async () => {
+            try {
+                const status = await getCustomerPortalStatus();
+                if (active && status.statusKnown === true && status.available === false) {
+                    router.replace('/maintenance');
+                }
+            } catch {
+                // Do not block entry when the status dependency is unavailable.
+            }
+        };
+
+        if (isPublicRoute) {
+            checkPortalAvailability();
+            return () => {
+                active = false;
+            };
+        }
 
         const redirectToLogin = () => {
             if (!active || typeof window === 'undefined') return;
@@ -45,9 +68,7 @@ export function AuthInitializer() {
 
         loadSession();
 
-        getCustomerPortalStatus().then((status) => {
-            if (active && status.statusKnown === true && status.available === false) router.replace('/maintenance');
-        }).catch(() => undefined);
+        checkPortalAvailability();
 
         const handleAuthChange = () => {
             loadSession(true);
