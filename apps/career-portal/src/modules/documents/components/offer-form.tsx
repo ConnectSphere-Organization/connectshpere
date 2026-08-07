@@ -132,21 +132,7 @@ export function OfferForm({
         {(field) => <Field label="Compensation" field={field} />}
       </form.Field>
       <form.Field name="payoutFrequency">
-        {(field) => (
-          <Select
-            label="Payout frequency"
-            value={field.state.value}
-            onChange={(value) => field.handleChange(value)}
-            options={[
-              { value: "monthly", label: "Monthly" },
-              { value: "annual", label: "Annual" },
-              { value: "weekly", label: "Weekly" },
-              { value: "bi-weekly", label: "Bi-weekly" },
-              { value: "quarterly", label: "Quarterly" },
-              { value: "lumpsum", label: "Lump-sum" },
-            ]}
-          />
-        )}
+        {(field) => <Field label="Payout frequency" field={field} />}
       </form.Field>
       <form.Field name="startDate">
         {(field) => <Field label="Start date" field={field} type="date" />}
@@ -261,8 +247,6 @@ function Area({ label, field }: { label: string; field: FieldValue }) {
     </div>
   );
 }
-type SelectOption = string | { value: string; label: string };
-
 function Select({
   label,
   value,
@@ -272,7 +256,7 @@ function Select({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  options: readonly SelectOption[];
+  options: readonly string[];
 }) {
   return (
     <div className="space-y-2">
@@ -282,16 +266,11 @@ function Select({
         value={value}
         onChange={(event) => onChange(event.target.value)}
       >
-        {options.map((option) => {
-          const optValue = typeof option === "string" ? option : option.value;
-          const optLabel =
-            typeof option === "string" ? option.replace("_", " ") : option.label;
-          return (
-            <option key={optValue} value={optValue}>
-              {optLabel}
-            </option>
-          );
-        })}
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option.replace("_", " ")}
+          </option>
+        ))}
       </select>
     </div>
   );

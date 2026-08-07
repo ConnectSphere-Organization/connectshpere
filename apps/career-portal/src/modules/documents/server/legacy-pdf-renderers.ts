@@ -615,9 +615,7 @@ export async function renderLegacyOfferPdf(
     input.salary === "0";
   const extended = input.extensionCount > 0;
   const typeLabel = internship ? "Internship" : input.offerType || "Job";
-  const salaryLabel = internship
-    ? "Stipend (Monthly)"
-    : "Annual CTC (Yearly)";
+  const salaryLabel = `${internship ? "Stipend" : "Annual CTC"}${internship && input.payoutFrequency ? ` (${input.payoutFrequency})` : ""}`;
   const salary =
     input.salary === "0" ? "Unpaid" : `Rs.${formatCurrency(input.salary)}`;
   const duration =
