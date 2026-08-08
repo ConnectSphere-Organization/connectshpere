@@ -49,16 +49,31 @@ spec:
                 secretKeyRef:
                   name: {{ include "enterprise.fullname" . }}-mongodb-secret
                   key: MONGODB_URI
+            # Auth service uses MONGO_URI while the other services use MONGODB_URI.
+            # Supply both aliases from the single Key Vault-backed value.
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "enterprise.fullname" . }}-mongodb-secret
+                  key: MONGODB_URI
             {{- end }}
           {{- if .Values.runtimeSecretName }}
           envFrom:
             - secretRef:
                 name: {{ .Values.runtimeSecretName }}
           {{- end }}
+          # Backends do not expose a uniform HTTP health endpoint. A TCP probe
+          # verifies the actual listening port without causing restart loops.
           livenessProbe:
-            {{- toYaml .Values.livenessProbe | nindent 12 }}
+            tcpSocket:
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
           readinessProbe:
-            {{- toYaml .Values.readinessProbe | nindent 12 }}
+            tcpSocket:
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.azureKeyVault.enabled }}
