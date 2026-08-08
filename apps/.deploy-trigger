@@ -1,1 +1,1 @@
-Trigger production image rebuild after correcting the Docker build context.
+Trigger production image rebuild after correcting Azure ACR authentication.
