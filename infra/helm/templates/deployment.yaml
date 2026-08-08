@@ -50,6 +50,11 @@ spec:
                   name: {{ include "enterprise.fullname" . }}-mongodb-secret
                   key: MONGODB_URI
             {{- end }}
+          {{- if .Values.runtimeSecretName }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.runtimeSecretName }}
+          {{- end }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
           readinessProbe:

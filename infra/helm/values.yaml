@@ -81,6 +81,8 @@ env:
   NODE_ENV: "production"
   OTEL_EXPORTER_OTLP_ENDPOINT: "http://tempo-distributor.monitoring.svc.cluster.local:4317"
 
+runtimeSecretName: "connectsphere-runtime-secrets"
+
 livenessProbe:
   httpGet:
     path: /health
