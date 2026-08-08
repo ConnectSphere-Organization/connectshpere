@@ -32,6 +32,9 @@ spec:
         helm:
           valueFiles:
             - values.yaml
+          parameters:
+            - name: "azureKeyVault.secretName"
+              value: "mongodb-uri-{{service}}"
       destination:
         server: 'https://kubernetes.default.svc'
         namespace: production
