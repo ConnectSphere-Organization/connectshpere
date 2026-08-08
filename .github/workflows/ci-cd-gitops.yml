@@ -7,6 +7,7 @@ on:
     paths:
       - 'services/**'
       - 'apps/**'
+      - '.github/workflows/**'
 
 permissions:
   contents: write
@@ -59,7 +60,13 @@ jobs:
           fi
 
           if [ -d "$SERVICE_PATH" ]; then
-            docker build -f "$SERVICE_PATH/Dockerfile" -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${IMAGE_TAG} .
+            BUILD_ARGS=()
+            # Next.js stores rewrites in the production build.  This must be
+            # supplied during docker build, not only as a pod runtime env var.
+            if [[ "${{ matrix.service }}" == "customer-portal" ]]; then
+              BUILD_ARGS+=(--build-arg BACKEND_API_URL=http://api-gateway-enterprise-service.production.svc.cluster.local:8080)
+            fi
+            docker build "${BUILD_ARGS[@]}" -f "$SERVICE_PATH/Dockerfile" -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${IMAGE_TAG} .
             
             # Trivy Vulnerability Scan
             curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
