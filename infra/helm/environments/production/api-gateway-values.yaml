@@ -1,0 +1,5 @@
+image:
+  repository: acrsaasprod.azurecr.io/api-gateway
+  tag: 'ca82dbacf921fd6381c1af9e7b8e70b6704ae904'
+azureKeyVault:
+  secretName: 'mongodb-uri-api-gateway'
