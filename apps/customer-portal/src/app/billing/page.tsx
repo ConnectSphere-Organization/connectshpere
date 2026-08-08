@@ -29,6 +29,22 @@ export default function BillingPage() {
     const [isPlanSelectionOpen, setIsPlanSelectionOpen] = React.useState(false);
     const [isAddingPaymentMethod, setIsAddingPaymentMethod] = React.useState(false);
 
+    // The header reads the global wallet store while this page reads the
+    // ledger-backed billing snapshot. Keep the single displayed balance in
+    // sync whenever a fresh billing response arrives.
+    React.useEffect(() => {
+        if (!billing?.wallet) return;
+        useAuthStore.setState((state) => ({
+            wallet: {
+                ...state.wallet,
+                balance: billing.wallet.balance,
+                currency: billing.wallet.currency || state.wallet.currency,
+                thresholdAmount: billing.wallet.thresholdAmount ?? state.wallet.thresholdAmount,
+                isServiceDown: billing.wallet.isServiceDown,
+            },
+        }));
+    }, [billing?.wallet]);
+
     if (isLoading) return <FlashLoader />;
 
     const handlePlanChanged = async () => {
