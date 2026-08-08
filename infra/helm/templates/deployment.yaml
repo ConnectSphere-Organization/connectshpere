@@ -43,6 +43,32 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+            {{- if eq .Release.Name "admin-portal" }}
+            # Monitoring runs inside the admin-portal pod. localhost there is
+            # the portal itself, not the rest of the platform.
+            - name: GATEWAY_URL
+              value: http://api-gateway-enterprise-service.production.svc.cluster.local:8080
+            - name: AUTH_SERVICE_URL
+              value: http://auth-service-enterprise-service.production.svc.cluster.local:8080
+            - name: CHAT_SERVICE_URL
+              value: http://chat-service-enterprise-service.production.svc.cluster.local:8080
+            - name: CONTACT_SERVICE_URL
+              value: http://contact-service-enterprise-service.production.svc.cluster.local:8080
+            - name: BILLING_SERVICE_URL
+              value: http://billing-service-enterprise-service.production.svc.cluster.local:8080
+            - name: CAMPAIGN_SERVICE_URL
+              value: http://campaign-service-enterprise-service.production.svc.cluster.local:8080
+            - name: AUTOMATION_SERVICE_URL
+              value: http://automation-service-enterprise-service.production.svc.cluster.local:8080
+            - name: SERVICE_PROVIDER_URL
+              value: http://service-provider-enterprise-service.production.svc.cluster.local:8080
+            - name: WEBHOOK_INGESTOR_URL
+              value: http://webhook-ingestor-enterprise-service.production.svc.cluster.local:8080
+            - name: WEBSOCKET_URL
+              value: http://websocket-gateway-enterprise-service.production.svc.cluster.local:8080
+            - name: CUSTOMER_PORTAL_URL
+              value: http://customer-portal-enterprise-service.production.svc.cluster.local:8080
+            {{- end }}
             {{- if .Values.azureKeyVault.enabled }}
             - name: MONGODB_URI
               valueFrom:
