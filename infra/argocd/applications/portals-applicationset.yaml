@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: connectsphere-portals
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - service: customer-portal
+            ingressClass: nginx-customer
+            ingressHost: connectsphere-customer-vivek.eastus2.cloudapp.azure.com
+            containerPort: '3000'
+          - service: admin-portal
+            ingressClass: nginx
+            ingressHost: connectsphere-admin-vivek.eastus2.cloudapp.azure.com
+            containerPort: '3100'
+          - service: career-portal
+            ingressClass: nginx-career
+            ingressHost: connectsphere-career-vivek.eastus2.cloudapp.azure.com
+            containerPort: '3001'
+  template:
+    metadata:
+      name: '{{service}}'
+    spec:
+      project: default
+      source:
+        repoURL: 'https://github.com/Vivekkumarprince1/wApi.git'
+        targetRevision: HEAD
+        path: infra/helm
+        helm:
+          valueFiles:
+            - values.yaml
+          parameters:
+            - name: azureKeyVault.secretName
+              value: mongodb-uri-{{service}}
+            - name: image.repository
+              value: acrsaasprod.azurecr.io/{{service}}
+            - name: ingress.enabled
+              value: 'true'
+            - name: ingress.className
+              value: '{{ingressClass}}'
+            - name: ingress.host
+              value: '{{ingressHost}}'
+            - name: service.targetPort
+              value: '{{containerPort}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: production
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

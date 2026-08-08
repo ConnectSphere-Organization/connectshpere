@@ -17,9 +17,6 @@ spec:
           - service: service-provider
           - service: webhook-ingestor
           - service: websocket-gateway
-          - service: customer-portal
-          - service: admin-portal
-          - service: career-portal
   template:
     metadata:
       name: '{{service}}'

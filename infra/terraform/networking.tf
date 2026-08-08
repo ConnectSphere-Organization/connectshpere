@@ -38,6 +38,29 @@ resource "azurerm_public_ip" "ingress_pip" {
   resource_group_name = azurerm_resource_group.rg.name
   allocation_method   = "Static"
   sku                 = "Standard"
+  domain_name_label   = "connectsphere-admin-vivek"
 
   tags = azurerm_resource_group.rg.tags
+}
+
+resource "azurerm_public_ip" "customer_portal_pip" {
+  name                = "pip-customer-portal-prod"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  domain_name_label   = "connectsphere-customer-vivek"
+
+  tags = merge(azurerm_resource_group.rg.tags, { Portal = "customer" })
+}
+
+resource "azurerm_public_ip" "career_portal_pip" {
+  name                = "pip-career-portal-prod"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  domain_name_label   = "connectsphere-career-vivek"
+
+  tags = merge(azurerm_resource_group.rg.tags, { Portal = "career" })
 }

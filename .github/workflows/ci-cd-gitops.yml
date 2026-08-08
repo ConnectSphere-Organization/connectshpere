@@ -56,7 +56,7 @@ jobs:
           fi
 
           if [ -d "$SERVICE_PATH" ]; then
-            docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${IMAGE_TAG} $SERVICE_PATH
+            docker build -f "$SERVICE_PATH/Dockerfile" -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${IMAGE_TAG} .
             
             # Trivy Vulnerability Scan
             curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
