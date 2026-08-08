@@ -16,6 +16,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         service:
           - api-gateway
@@ -68,20 +69,3 @@ jobs:
             docker tag ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${IMAGE_TAG} ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest
             docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest
           fi
-
-      - name: Update Helm Image Tag for GitOps (ArgoCD)
-        run: |
-          mkdir -p infra/helm/environments/production
-          OVERRIDE_FILE="infra/helm/environments/production/${{ matrix.service }}-values.yaml"
-          
-          echo "image:" > $OVERRIDE_FILE
-          echo "  repository: ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}" >> $OVERRIDE_FILE
-          echo "  tag: '${{ github.sha }}'" >> $OVERRIDE_FILE
-          echo "azureKeyVault:" >> $OVERRIDE_FILE
-          echo "  secretName: 'mongodb-uri-${{ matrix.service }}'" >> $OVERRIDE_FILE
-
-      - name: Commit and Push Helm Tag Changes (GitOps trigger)
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chroma(gitops): update image tag for ${{ matrix.service }} to ${{ github.sha }}"
-          branch: main
