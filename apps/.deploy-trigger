@@ -1,1 +1,1 @@
-Trigger production image rebuild after GitHub Actions secrets were configured.
+Trigger production image rebuild with independent parallel image builds.
