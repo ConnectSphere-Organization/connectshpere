@@ -5,7 +5,7 @@ fullnameOverride: ""
 replicaCount: 3
 
 image:
-  repository: acrsaasproduction.azurecr.io/service
+  repository: acrsaasprod.azurecr.io/service
   pullPolicy: IfNotPresent
   tag: "latest"
 
