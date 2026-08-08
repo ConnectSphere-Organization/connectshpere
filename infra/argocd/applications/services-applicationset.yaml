@@ -8,15 +8,76 @@ spec:
     - list:
         elements:
           - service: api-gateway
+            containerPort: "8080"
+            livenessPath: "/health"
+            readinessPath: "/ready"
+            ingressEnabled: "false"
           - service: auth-service
+            containerPort: "8080"
+            livenessPath: "/health"
+            readinessPath: "/ready"
+            ingressEnabled: "false"
           - service: automation-service
+            containerPort: "8080"
+            livenessPath: "/health"
+            readinessPath: "/ready"
+            ingressEnabled: "false"
           - service: billing-service
+            containerPort: "8080"
+            livenessPath: "/health"
+            readinessPath: "/ready"
+            ingressEnabled: "false"
           - service: campaign-service
+            containerPort: "8080"
+            livenessPath: "/health"
+            readinessPath: "/ready"
+            ingressEnabled: "false"
           - service: chat-service
+            containerPort: "8080"
+            livenessPath: "/health"
+            readinessPath: "/ready"
+            ingressEnabled: "false"
           - service: contact-service
+            containerPort: "8080"
+            livenessPath: "/health"
+            readinessPath: "/ready"
+            ingressEnabled: "false"
           - service: service-provider
+            containerPort: "8080"
+            livenessPath: "/health"
+            readinessPath: "/ready"
+            ingressEnabled: "false"
           - service: webhook-ingestor
+            containerPort: "8080"
+            livenessPath: "/health"
+            readinessPath: "/ready"
+            ingressEnabled: "false"
           - service: websocket-gateway
+            containerPort: "8080"
+            livenessPath: "/health"
+            readinessPath: "/ready"
+            ingressEnabled: "false"
+          - service: customer-portal
+            containerPort: "3000"
+            livenessPath: "/"
+            readinessPath: "/"
+            ingressEnabled: "true"
+            ingressClass: "nginx-customer"
+            ingressHost: "connectsphere-customer-vivek.eastus2.cloudapp.azure.com"
+          - service: admin-portal
+            containerPort: "3100"
+            livenessPath: "/"
+            readinessPath: "/"
+            ingressEnabled: "true"
+            ingressClass: "nginx"
+            ingressHost: "connectsphere-admin-vivek.eastus2.cloudapp.azure.com"
+          - service: career-portal
+            containerPort: "3001"
+            livenessPath: "/"
+            readinessPath: "/"
+            ingressEnabled: "true"
+            ingressClass: "nginx-career"
+            ingressHost: "connectsphere-career-vivek.eastus2.cloudapp.azure.com"
   template:
     metadata:
       name: '{{service}}'
@@ -34,6 +95,22 @@ spec:
               value: "mongodb-uri-{{service}}"
             - name: "image.repository"
               value: "acrsaasprod.azurecr.io/{{service}}"
+            - name: "service.targetPort"
+              value: "{{containerPort}}"
+            - name: "livenessProbe.httpGet.port"
+              value: "{{containerPort}}"
+            - name: "livenessProbe.httpGet.path"
+              value: "{{livenessPath}}"
+            - name: "readinessProbe.httpGet.port"
+              value: "{{containerPort}}"
+            - name: "readinessProbe.httpGet.path"
+              value: "{{readinessPath}}"
+            - name: "ingress.enabled"
+              value: "{{ingressEnabled}}"
+            - name: "ingress.className"
+              value: "{{ingressClass}}"
+            - name: "ingress.host"
+              value: "{{ingressHost}}"
       destination:
         server: 'https://kubernetes.default.svc'
         namespace: production
