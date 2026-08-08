@@ -11,7 +11,7 @@ RUN cd packages/contracts && npm install
 COPY packages/contracts ./packages/contracts
 RUN cd packages/contracts && npm run build
 
-COPY apps/admin-portal/package*.json ./apps/admin-portal/
+COPY apps/admin-portal/package*.json apps/admin-portal/connectsphere-contracts-0.1.0.tgz ./apps/admin-portal/
 RUN cd apps/admin-portal && npm install
 COPY apps/admin-portal ./apps/admin-portal
 RUN cd apps/admin-portal && npm run build
