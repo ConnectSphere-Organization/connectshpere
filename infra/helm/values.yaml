@@ -19,7 +19,7 @@ serviceAccount:
 
 azureKeyVault:
   enabled: true
-  userAssignedIdentityID: ""
+  userAssignedIdentityID: "9133ffb3-4316-4116-ac82-d40c4d073594"
   keyVaultName: "kvsaasprod9rmf1t"
   tenantId: "bec1eb95-e192-4068-a6e5-4847ec729d6f"
   secretName: "mongodb-uri-service"
