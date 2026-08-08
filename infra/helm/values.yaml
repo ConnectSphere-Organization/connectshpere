@@ -20,8 +20,8 @@ serviceAccount:
 azureKeyVault:
   enabled: true
   userAssignedIdentityID: ""
-  keyVaultName: "kv-saas-production"
-  tenantId: ""
+  keyVaultName: "kvsaasprod9rmf1t"
+  tenantId: "bec1eb95-e192-4068-a6e5-4847ec729d6f"
   secretName: "mongodb-uri-service"
 
 podAnnotations:
