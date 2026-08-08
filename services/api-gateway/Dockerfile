@@ -3,6 +3,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY packages/contracts ./packages/contracts
+RUN cd packages/contracts && npm install && npm run build
 COPY services/api-gateway ./services/api-gateway
 RUN cd services/api-gateway && npm install && npm run build
 
