@@ -35,6 +35,8 @@ spec:
           parameters:
             - name: "azureKeyVault.secretName"
               value: "mongodb-uri-{{service}}"
+            - name: "image.repository"
+              value: "acrsaasprod.azurecr.io/{{service}}"
       destination:
         server: 'https://kubernetes.default.svc'
         namespace: production
