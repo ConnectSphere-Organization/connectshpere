@@ -84,7 +84,7 @@ spec:
     spec:
       project: default
       source:
-        repoURL: 'https://github.com/Vivekkumarprince1/wApi.git'
+        repoURL: 'https://github.com/Vivekkumarprince1/connectshpere.git'
         targetRevision: HEAD
         path: infra/helm
         helm:
