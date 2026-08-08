@@ -4,6 +4,7 @@ ENV NODE_ENV=production
 
 COPY packages/contracts ./packages/contracts
 COPY services/api-gateway ./services/api-gateway
+RUN cd services/api-gateway && npm install && npm run build
 
 WORKDIR /app/services/api-gateway
 EXPOSE 5001

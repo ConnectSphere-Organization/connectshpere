@@ -4,6 +4,7 @@ ENV NODE_ENV=production
 
 COPY packages/contracts ./packages/contracts
 COPY services/websocket-gateway ./services/websocket-gateway
+RUN cd services/websocket-gateway && npm install && npm run build
 
 WORKDIR /app/services/websocket-gateway
 EXPOSE 3009
