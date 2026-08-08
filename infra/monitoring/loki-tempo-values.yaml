@@ -1,0 +1,19 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: loki-promtail
+  namespace: monitoring
+spec:
+  chart: loki-stack
+  repo: https://grafana.github.io/helm-charts
+  targetNamespace: monitoring
+  valuesContent: |
+    loki:
+      enabled: true
+      persistence:
+        enabled: true
+        size: 50Gi
+    promtail:
+      enabled: true
+    tempo:
+      enabled: true

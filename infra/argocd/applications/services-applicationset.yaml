@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: saas-microservices
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          - service: api-gateway
+          - service: auth-service
+          - service: automation-service
+          - service: billing-service
+          - service: campaign-service
+          - service: chat-service
+          - service: contact-service
+          - service: service-provider
+          - service: webhook-ingestor
+          - service: websocket-gateway
+          - service: customer-portal
+          - service: admin-portal
+          - service: career-portal
+  template:
+    metadata:
+      name: '{{service}}'
+    spec:
+      project: default
+      source:
+        repoURL: 'https://github.com/Vivekkumarprince1/wApi.git'
+        targetRevision: HEAD
+        path: infra/helm
+        helm:
+          valueFiles:
+            - values.yaml
+            - 'environments/production/{{service}}-values.yaml'
+      destination:
+        server: 'https://kubernetes.default.svc'
+        namespace: production
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

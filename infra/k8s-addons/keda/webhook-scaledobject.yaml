@@ -1,0 +1,19 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: webhook-service-keda
+  namespace: production
+spec:
+  scaleTargetRef:
+    name: webhook-ingestor
+  minReplicaCount: 2
+  maxReplicaCount: 30
+  cooldownPeriod: 300
+  pollingInterval: 15
+  triggers:
+    - type: azure-servicebus
+      metadata:
+        queueName: webhooks-queue
+        messageCount: "100"
+      authenticationRef:
+        name: keda-azure-credentials

@@ -55,3 +55,9 @@ requests.log
 database-seed/
 mongodb-backups/
 *.dump
+
+# Terraform generated files
+**/.terraform/
+**/tfplan
+**/*.tfstate
+**/*.tfstate.*
