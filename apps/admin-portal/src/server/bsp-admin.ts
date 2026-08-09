@@ -12,6 +12,7 @@ const DEFAULT_EVENTS = [
 
 let cachedPartnerToken = "";
 let cachedPartnerTokenUntil = 0;
+const cachedAppTokens = new Map<string, { token: string; expiresAt: number }>();
 
 function providerClient(): AxiosInstance {
   return axios.create({
@@ -65,6 +66,74 @@ async function withPartnerAuth<T>(operation: (headers: Record<string, string>) =
     }
   }
   throw new Error("Gupshup authorization failed");
+}
+
+/**
+ * Subscription endpoints are authorized at the app level. A Partner token can
+ * obtain the app token, but is not itself accepted for every subscription
+ * operation (Gupshup returns 403 in that case).
+ */
+async function resolveAppToken(appId: string, forceRefresh = false): Promise<string> {
+  const cached = cachedAppTokens.get(appId);
+  if (!forceRefresh && cached && cached.expiresAt > Date.now()) return cached.token;
+
+  const partner = normalizeToken(await partnerToken(forceRefresh));
+  const headerVariants: Array<Record<string, string>> = [
+    { Authorization: partner, token: partner, Accept: "application/json" },
+    { Authorization: `Bearer ${partner}`, token: partner, Accept: "application/json" },
+    { token: partner, Accept: "application/json" },
+  ];
+
+  let lastError: unknown;
+  for (const headers of headerVariants) {
+    try {
+      const response = await providerClient().get(
+        `/partner/app/${encodeURIComponent(appId)}/token`,
+        { headers },
+      );
+      const candidate =
+        response.data?.token?.token ||
+        response.data?.data?.token?.token ||
+        response.data?.result?.token?.token ||
+        response.data?.token ||
+        response.data?.accessToken;
+      const token = normalizeToken(candidate);
+      if (!token) throw new Error(response.data?.message || "Gupshup app token was not returned");
+
+      cachedAppTokens.set(appId, { token, expiresAt: Date.now() + 23 * 60 * 60 * 1000 });
+      return token;
+    } catch (error) {
+      lastError = error;
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+      if (status !== 401 && status !== 403) throw providerError(error);
+    }
+  }
+
+  throw providerError(lastError);
+}
+
+async function withAppAuth<T>(appId: string, operation: (headers: Record<string, string>) => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (const forceRefresh of [false, true]) {
+    const token = await resolveAppToken(appId, forceRefresh);
+    const headerVariants: Array<Record<string, string>> = [
+      { Authorization: token, Accept: "application/json" },
+      { token, Accept: "application/json" },
+      { Authorization: `Bearer ${token}`, token, Accept: "application/json" },
+    ];
+
+    for (const headers of headerVariants) {
+      try {
+        return await operation(headers);
+      } catch (error) {
+        lastError = error;
+        const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+        if (status !== 401 && status !== 403) throw providerError(error);
+      }
+    }
+  }
+
+  throw providerError(lastError);
 }
 
 export async function listBspApps(workspaceId?: string) {
@@ -273,7 +342,7 @@ export async function resolveBspAppIdDirect(explicitAppId: unknown, workspaceIdV
 }
 
 async function listProviderSubscriptions(appId: string): Promise<Record<string, unknown>[]> {
-  return withPartnerAuth(async (headers) => {
+  return withAppAuth(appId, async (headers) => {
     const response = await providerClient().get(`/partner/app/${encodeURIComponent(appId)}/subscription`, { headers });
     const subscriptions = response.data?.subscriptions || response.data?.data || [];
     return Array.isArray(subscriptions) ? subscriptions : [];
@@ -281,7 +350,7 @@ async function listProviderSubscriptions(appId: string): Promise<Record<string, 
 }
 
 async function createProviderSubscription(appId: string, url: string, events: string[]) {
-  return withPartnerAuth(async (headers) => {
+  return withAppAuth(appId, async (headers) => {
     const form = subscriptionForm(appId, url, events);
     const response = await providerClient().post(`/partner/app/${encodeURIComponent(appId)}/subscription?v=v3`, form.toString(), {
       headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" },
@@ -291,7 +360,7 @@ async function createProviderSubscription(appId: string, url: string, events: st
 }
 
 async function updateProviderSubscription(appId: string, subscriptionIdValue: string, url: string, events: string[]) {
-  return withPartnerAuth(async (headers) => {
+  return withAppAuth(appId, async (headers) => {
     const form = subscriptionForm(appId, url, events);
     const response = await providerClient().put(
       `/partner/app/${encodeURIComponent(appId)}/subscription/${encodeURIComponent(subscriptionIdValue)}?v=v3`,
@@ -303,7 +372,7 @@ async function updateProviderSubscription(appId: string, subscriptionIdValue: st
 }
 
 async function deleteProviderSubscription(appId: string, subscriptionIdValue: string) {
-  return withPartnerAuth(async (headers) => {
+  return withAppAuth(appId, async (headers) => {
     const response = await providerClient().delete(
       `/partner/app/${encodeURIComponent(appId)}/subscription/${encodeURIComponent(subscriptionIdValue)}`,
       { headers },
