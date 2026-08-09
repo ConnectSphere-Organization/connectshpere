@@ -14,6 +14,16 @@ spec:
             ingressEnabled: "true"
             ingressClass: "nginx-customer"
             ingressHost: "connectsphere-customer-vivek.eastus2.cloudapp.azure.com"
+          # customer-portal is managed by this ApplicationSet in the live
+          # cluster. Keep it here so its generated Application retains the
+          # Socket.IO ingress parameters below.
+          - service: customer-portal
+            containerPort: "3000"
+            livenessPath: "/health"
+            readinessPath: "/ready"
+            ingressEnabled: "true"
+            ingressClass: "nginx-customer"
+            ingressHost: "connectsphere-customer-vivek.eastus2.cloudapp.azure.com"
           - service: auth-service
             containerPort: "3006"
             livenessPath: "/health"
@@ -103,6 +113,23 @@ spec:
               value: "{{ingressClass}}"
             - name: "ingress.host"
               value: "{{ingressHost}}"
+            # Socket.IO Engine.IO sessions are local to a gateway process.
+            # Direct traffic to that service and keep polling requests on its
+            # initial pod; these values are harmless for ingress-disabled apps.
+            - name: "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/affinity"
+              value: "cookie"
+            - name: "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/session-cookie-name"
+              value: "connectsphere_socket_route"
+            - name: "ingress.annotations.nginx\\.ingress\\.kubernetes\\.io/session-cookie-path"
+              value: "/socket.io"
+            - name: "ingress.extraPaths[0].path"
+              value: "/socket.io"
+            - name: "ingress.extraPaths[0].pathType"
+              value: "Prefix"
+            - name: "ingress.extraPaths[0].backend.service.name"
+              value: "websocket-gateway-enterprise-service"
+            - name: "ingress.extraPaths[0].backend.service.port.name"
+              value: "http"
       destination:
         server: 'https://kubernetes.default.svc'
         namespace: production
