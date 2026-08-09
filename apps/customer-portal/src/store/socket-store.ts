@@ -26,7 +26,10 @@ export const useSocketStore = create<SocketState>((set, get) => ({
 
     const socket = io(socketBase || undefined, {
       auth: { token },
-      transports: ['websocket'],
+      // Keep this legacy store aligned with the shared socket hook. The
+      // public HTTP ingress does not reliably carry WebSocket upgrades.
+      transports: ['polling'],
+      upgrade: false,
       reconnection: true,
       reconnectionAttempts: 10,
     });

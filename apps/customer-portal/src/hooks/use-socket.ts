@@ -112,9 +112,12 @@ const getSocket = async (): Promise<Socket> => {
     const socket = io(socketBase || undefined, {
       auth: { token },
       withCredentials: true,
-      transports: ['websocket', 'polling'],
-      upgrade: true,
-      tryAllTransports: true,
+      // The public customer endpoint is currently HTTP-only. Some upstream
+      // networks strip Upgrade on `ws://` requests, which turns a healthy
+      // Engine.IO polling session into repeated 400s. Polling is Socket.IO's
+      // supported realtime fallback and remains stable through that edge.
+      transports: ['polling'],
+      upgrade: false,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
     });
