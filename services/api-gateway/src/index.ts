@@ -149,7 +149,7 @@ app.use(cors({
 
 app.use((req, res, next) => {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
-  if (isPublicWebhookPath(req.path) || req.path.startsWith('/api/internal')) return next();
+  if (isPublicWebhookPath(req.path) || req.path.startsWith('/api/internal') || req.path.startsWith('/socket.io')) return next();
   const cookieAuthenticated = typeof req.headers.cookie === 'string' && req.headers.cookie
     .split(';')
     .some((value) => value.trim().startsWith('auth_token='));
@@ -214,10 +214,10 @@ app.use(async (req, res, next) => {
   delete req.headers['x-internal-service'];
 
   // Skip verification for internal API calls, provider webhooks, public health
-  // check endpoints, and public auth endpoints. Public auth routes must still reach auth-service
+  // check endpoints, public auth endpoints, and socket.io connections. Public auth routes must still reach auth-service
   // when the browser has an expired/stale auth_token cookie; otherwise login
   // cannot replace the bad cookie.
-  if (req.path.startsWith('/api/internal') || isPublicWebhookPath(req.path) || isPublicWidgetPath(req.path) || req.path === '/health' || req.path === '/' || isPublicAuthPath(req.path)) {
+  if (req.path.startsWith('/api/internal') || isPublicWebhookPath(req.path) || isPublicWidgetPath(req.path) || req.path === '/health' || req.path === '/' || isPublicAuthPath(req.path) || req.path.startsWith('/socket.io')) {
     return next();
   }
 

@@ -113,7 +113,7 @@ const getSocket = async (): Promise<Socket> => {
       auth: { token },
       withCredentials: true,
       transports: ['websocket', 'polling'],
-      upgrade: false,
+      upgrade: true,
       tryAllTransports: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
