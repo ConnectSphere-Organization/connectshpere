@@ -91,6 +91,18 @@ spec:
             - name: WEBHOOK_INGESTOR_URL
               value: http://webhook-ingestor-enterprise-service.production.svc.cluster.local:8080
             {{- end }}
+            {{- if eq .Release.Name "chat-service" }}
+            # Chat dispatches outbound messages and resolves contacts itself.
+            # In Kubernetes these must never fall back to localhost defaults.
+            - name: CONTACT_SERVICE_URL
+              value: http://contact-service-enterprise-service.production.svc.cluster.local:8080
+            - name: BSP_SERVICE_URL
+              value: http://service-provider-enterprise-service.production.svc.cluster.local:8080
+            - name: SERVICE_PROVIDER_URL
+              value: http://service-provider-enterprise-service.production.svc.cluster.local:8080
+            - name: BILLING_SERVICE_URL
+              value: http://billing-service-enterprise-service.production.svc.cluster.local:8080
+            {{- end }}
             {{- if eq .Release.Name "customer-portal" }}
             # Next.js evaluates rewrites in the portal container.
             - name: BACKEND_API_URL

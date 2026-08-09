@@ -507,7 +507,7 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
         return res.status(503).json({ success: false, error: { code: 'PROVIDER_NOT_CONFIGURED', message: 'WhatsApp provider is not configured' } });
       }
 
-      const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
+      const bspUrl = process.env.BSP_SERVICE_URL || process.env.SERVICE_PROVIDER_URL || 'http://localhost:3004';
 
       const isBillableTemplate = type === 'template' && template && !req.body.campaign;
       if (isBillableTemplate) {
@@ -739,7 +739,7 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
         return res.status(503).json({ success: false, error: { code: 'PROVIDER_NOT_CONFIGURED', message: 'WhatsApp provider is not configured' } });
       }
 
-      const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
+      const bspUrl = process.env.BSP_SERVICE_URL || process.env.SERVICE_PROVIDER_URL || 'http://localhost:3004';
 
       const isBillableTemplate = type === 'template' && template && !req.body.campaign;
       if (isBillableTemplate) {
@@ -1136,7 +1136,7 @@ export const markAsReadPublic = async (req: any, res: express.Response) => {
         const appId = workspaceDoc?.gupshupAppId;
 
         if (appId) {
-          const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
+          const bspUrl = process.env.BSP_SERVICE_URL || process.env.SERVICE_PROVIDER_URL || 'http://localhost:3004';
           await axios.post(
             `${bspUrl}/internal/v1/bsp/messages/read`,
             {

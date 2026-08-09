@@ -747,6 +747,16 @@ export default function InboxPage() {
     void markConversationAsRead(conv._id);
   };
 
+  const isSelectedWhatsAppSessionExpired = Boolean(
+    selectedConversation?.channel === 'whatsapp' &&
+    selectedConversation?.windowExpiresAt &&
+    new Date(selectedConversation.windowExpiresAt).getTime() <= Date.now()
+  );
+
+  const notifySessionExpired = () => {
+    toast.error('The 24-hour WhatsApp session has expired. Send an approved template to restart the conversation.');
+  };
+
   // Mutations
   const sendMutation = useMutation({
     mutationFn: (payload: { text: string; isNote: boolean; extraData?: any }) => 
@@ -1083,8 +1093,20 @@ export default function InboxPage() {
 
               {/* Chat Input */}
               <ChatInput 
-                onSendMessage={(text, isNote, extraData) => sendMutation.mutate({ text, isNote, extraData })}
-                onSendMedia={(file) => mediaMutation.mutate(file)}
+                onSendMessage={(text, isNote, extraData) => {
+                  if (!isNote && isSelectedWhatsAppSessionExpired) {
+                    notifySessionExpired();
+                    return;
+                  }
+                  sendMutation.mutate({ text, isNote, extraData });
+                }}
+                onSendMedia={(file) => {
+                  if (isSelectedWhatsAppSessionExpired) {
+                    notifySessionExpired();
+                    return;
+                  }
+                  mediaMutation.mutate(file);
+                }}
                 isSending={sendMutation.isPending || mediaMutation.isPending}
                 disabled={false}
                 onTyping={() => socket?.emit('typing', {
