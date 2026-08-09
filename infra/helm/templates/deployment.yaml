@@ -126,6 +126,12 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ .Values.runtimeSecretName }}
+            {{- if eq .Release.Name "service-provider" }}
+            # Gupshup partner credentials are synchronized from Azure Key Vault
+            # by this release's SecretProviderClass.
+            - secretRef:
+                name: {{ include "enterprise.fullname" . }}-gupshup-secret
+            {{- end }}
           {{- end }}
           # Backends do not expose a uniform HTTP health endpoint. A TCP probe
           # verifies the actual listening port without causing restart loops.

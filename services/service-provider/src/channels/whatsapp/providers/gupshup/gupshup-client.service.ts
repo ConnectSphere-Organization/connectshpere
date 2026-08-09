@@ -69,7 +69,10 @@ export class GupshupClientService {
 
     // Static token fallback
     const envToken = config.gupshup.partnerToken ? String(config.gupshup.partnerToken).replace(/^Bearer\s+/i, '').trim() : '';
-    const hasLoginCredentials = Boolean(config.gupshup.partnerEmail && config.gupshup.partnerPassword);
+    const hasLoginCredentials = Boolean(
+      config.gupshup.partnerEmail &&
+      (config.gupshup.partnerPassword || config.gupshup.partnerClientSecret)
+    );
 
     if (envToken && (!forceRefresh || !hasLoginCredentials)) {
       return envToken;
@@ -92,15 +95,18 @@ export class GupshupClientService {
       if (hasLoginCredentials) {
         const email = config.gupshup.partnerEmail?.trim() || '';
         const password = config.gupshup.partnerPassword?.trim() || '';
+        const clientSecret = config.gupshup.partnerClientSecret?.trim() || '';
 
-        console.log('[Gupshup API Auth Debug] Logging in with Partner credentials...', {
-          email,
+        console.log('[Gupshup API Auth] Requesting Partner token', {
           partnerBaseUrl: config.gupshup.partnerBaseUrl,
+          hasPassword: Boolean(password),
+          hasClientSecret: Boolean(clientSecret),
         });
 
         const params = new URLSearchParams();
         params.append('email', email);
-        params.append('password', password);
+        if (password) params.append('password', password);
+        if (clientSecret) params.append('clientSecret', clientSecret);
 
         const response = await this.partnerClient.post(
           '/partner/account/login',
