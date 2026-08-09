@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import Redis from 'ioredis';
 import { MongoClient } from 'mongodb';
 import { config } from './config/env.js';
-import { normalizeWebhookProvider, verifyProviderSignature } from './webhook-security.js';
+import { normalizeWebhookProvider, verifyProviderSignature, verifyWebhookCallbackToken } from './webhook-security.js';
 import { isEmptyWebhookProbe } from './webhook-probe.js';
 import { MetricsRegistry } from '@connectsphere/contracts';
 
@@ -278,7 +278,15 @@ async function handleWebhookPost(req: any, reply: any, providerParam?: string) {
     headers,
     secrets: config.webhookSecrets,
   });
-  if (!signatureValid && !config.allowUnsignedDevWebhooks) {
+  // Gupshup's production callback and its URL-validation event are not HMAC
+  // signed. Authenticate those requests with the secret embedded in the
+  // server-generated callback URL. Meta and any signed Gupshup requests keep
+  // using provider HMAC verification.
+  const callbackTokenValid = provider === 'gupshup' && verifyWebhookCallbackToken(
+    (req.query as Record<string, unknown>)?.verify_token,
+    config.verifyToken,
+  );
+  if (!signatureValid && !callbackTokenValid && !config.allowUnsignedDevWebhooks) {
     metrics.increment('webhooks_rejected_total', 'Provider webhooks rejected', { provider, reason: 'signature' });
     server.log.warn({ event: 'security.webhook_rejected', provider, reason: 'invalid_signature' });
     return reply.status(401).send({ success: false, error: { code: 'INVALID_WEBHOOK_SIGNATURE', message: 'Webhook signature verification failed' } });

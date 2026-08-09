@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { resolveWebhookSignaturePolicy } from '../src/config/webhook-policy';
-import { normalizeWebhookProvider, verifyProviderSignature } from '../src/webhook-security';
+import { normalizeWebhookProvider, verifyProviderSignature, verifyWebhookCallbackToken } from '../src/webhook-security';
 
 const body = Buffer.from('{"event":"message"}');
 const secrets = { gupshup: 'gupshup-secret', meta: 'meta-secret' };
@@ -27,4 +27,10 @@ test('rejects missing and invalid signatures', () => {
 
 test('rejects unsupported providers during normalization', () => {
     assert.equal(normalizeWebhookProvider('instagram'), null);
+});
+
+test('authenticates callback tokens without timing-unsafe string comparison', () => {
+    assert.equal(verifyWebhookCallbackToken('callback-secret', 'callback-secret'), true);
+    assert.equal(verifyWebhookCallbackToken('wrong', 'callback-secret'), false);
+    assert.equal(verifyWebhookCallbackToken(undefined, 'callback-secret'), false);
 });

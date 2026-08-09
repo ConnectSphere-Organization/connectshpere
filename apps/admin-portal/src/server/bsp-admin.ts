@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import mongoose from "mongoose";
 import { config } from "@/config/env";
 import { getConnection } from "@/server/db";
+import { buildGupshupWebhookUrl } from "@/server/gupshup-webhook-url";
 
 const DEFAULT_EVENTS = [
   "MESSAGE", "SENT", "DELIVERED", "READ", "FAILED", "TEMPLATE",
@@ -446,11 +447,7 @@ function isSandboxPartnerApp(app: Record<string, unknown>) {
 }
 
 function secureWebhookUrl(value: string) {
-  if (!value) throw new Error("Webhook URL is required");
-  let url = value.trim().replace(/\/+$/, "");
-  if (!url.includes("/api/webhooks/")) url += "/api/webhooks/whatsapp";
-  if (!url.startsWith("https://")) throw new Error("Gupshup webhook URL must use HTTPS");
-  return url;
+  return buildGupshupWebhookUrl(value, config.gupshup.webhookVerifyToken);
 }
 
 function normalizeEvents(value: unknown): string[] {

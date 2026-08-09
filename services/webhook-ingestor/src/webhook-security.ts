@@ -33,3 +33,10 @@ export function verifyProviderSignature(input: {
     const supplied = Buffer.from(suppliedHex, 'hex');
     return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
 }
+
+export function verifyWebhookCallbackToken(supplied: unknown, expected: string): boolean {
+    if (typeof supplied !== 'string' || !supplied || !expected) return false;
+    const suppliedBuffer = Buffer.from(supplied);
+    const expectedBuffer = Buffer.from(expected);
+    return suppliedBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(suppliedBuffer, expectedBuffer);
+}
