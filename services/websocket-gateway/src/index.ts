@@ -44,7 +44,7 @@ const corsOrigin = (origin: string | undefined, callback: (err: Error | null, al
 };
 
 // Normalize /socket.io? -> /socket.io/? so Engine.IO matches regardless of trailing slash
-httpServer.on('request', (req) => {
+httpServer.prependListener('request', (req) => {
   if (req.url && req.url.startsWith('/socket.io?')) {
     req.url = req.url.replace('/socket.io?', '/socket.io/?');
   }
