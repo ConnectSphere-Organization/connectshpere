@@ -11,9 +11,9 @@ spec:
             containerPort: "5001"
             livenessPath: "/health"
             readinessPath: "/ready"
-            ingressEnabled: "false"
-            ingressClass: "nginx"
-            ingressHost: ""
+            ingressEnabled: "true"
+            ingressClass: "nginx-customer"
+            ingressHost: "connectsphere-customer-vivek.eastus2.cloudapp.azure.com"
           - service: auth-service
             containerPort: "3006"
             livenessPath: "/health"
@@ -77,20 +77,7 @@ spec:
             ingressEnabled: "false"
             ingressClass: "nginx"
             ingressHost: ""
-          - service: customer-portal
-            containerPort: "3000"
-            livenessPath: "/"
-            readinessPath: "/"
-            ingressEnabled: "true"
-            ingressClass: "nginx-customer"
-            ingressHost: "connectsphere-customer-vivek.eastus2.cloudapp.azure.com"
-          - service: admin-portal
-            containerPort: "3100"
-            livenessPath: "/"
-            readinessPath: "/"
-            ingressEnabled: "true"
-            ingressClass: "nginx"
-            ingressHost: "connectsphere-admin-vivek.eastus2.cloudapp.azure.com"
+
   template:
     metadata:
       name: '{{service}}'
