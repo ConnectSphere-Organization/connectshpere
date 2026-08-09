@@ -7,6 +7,11 @@ metadata:
     {{- include "enterprise.labels" . | nindent 4 }}
   annotations:
     {{- toYaml .Values.ingress.annotations | nindent 4 }}
+    {{- if eq .Release.Name "customer-portal" }}
+    # The public customer hostname is served by the dedicated customer
+    # controller, so HTTP-01 challenges must use the same ingress class.
+    acme.cert-manager.io/http01-ingress-class: nginx-customer
+    {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   {{- if eq .Release.Name "customer-portal" }}
