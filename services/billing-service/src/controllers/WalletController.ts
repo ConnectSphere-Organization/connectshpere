@@ -60,7 +60,15 @@ export class WalletController {
 
   static async createRechargeOrder(req: Request, res: Response) {
     try {
-      const workspaceId = req.params.workspaceId as string;
+      const workspaceId: string = req.body?.workspaceId
+        || req.params?.workspaceId
+        || (req as any).workspace?._id?.toString()
+        || (req as any).workspace?.id;
+
+      if (!workspaceId) {
+        return res.status(400).json({ success: false, message: 'workspaceId is required' });
+      }
+
       const { amount, amountPaise } = req.body;
 
       const finalPaise = amountPaise || (amount ? Math.round(amount * 100) : 0);
@@ -96,7 +104,15 @@ export class WalletController {
 
   static async createPlanOrder(req: Request, res: Response) {
     try {
-      const workspaceId = req.params.workspaceId as string;
+      const workspaceId: string = req.body?.workspaceId
+        || req.params?.workspaceId
+        || (req as any).workspace?._id?.toString()
+        || (req as any).workspace?.id;
+
+      if (!workspaceId) {
+        return res.status(400).json({ success: false, message: 'workspaceId is required' });
+      }
+
       const { planId, planSlug, planName, monthlyBaseFeeCents, currency } = req.body;
 
       console.log(`[WalletController.createPlanOrder] workspaceId: ${workspaceId}, planId: ${planId}, planSlug: ${planSlug}, monthlyBaseFeeCents: ${monthlyBaseFeeCents}`);
@@ -571,12 +587,28 @@ export class WalletController {
     }
   }
 
-  // Need to fix razorpay createVerificationOrder which doesn't exist in the service, skipping it or using a dummy response.
   static async createVerificationOrder(req: Request, res: Response) {
     try {
-      const workspaceId = req.params.workspaceId as string;
+      const workspaceId: string = req.body?.workspaceId
+        || req.params?.workspaceId
+        || (req as any).workspace?._id?.toString()
+        || (req as any).workspace?.id;
+
+      if (!workspaceId) {
+        return res.status(400).json({ success: false, message: 'workspaceId is required' });
+      }
+
       // We are creating a ₹1 (100 paise) order for verifying the payment method
       const order = await RazorpayService.createRechargeOrder(100, workspaceId);
+
+      await RazorpayOrderModel.create({
+        orderId: order.id,
+        workspaceId,
+        amountPaise: Number(order.amount),
+        currency: order.currency || 'INR',
+        type: 'VERIFICATION',
+      });
+
       res.json({
         success: true,
         orderId: order.id,

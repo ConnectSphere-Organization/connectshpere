@@ -1,12 +1,32 @@
-import { WalletModel, WalletTransactionModel } from '../models';
+import { WalletModel, WalletTransactionModel, WorkspaceModel } from '../models';
 import mongoose from 'mongoose';
 
 export class LedgerService {
+  private async syncWorkspaceDoc(workspaceId: string, wallet: any) {
+    if (!workspaceId || !wallet) return;
+    try {
+      const balanceRupees = (wallet.availableBalance + (wallet.parkedBalance || 0)) / 100;
+      await WorkspaceModel.findByIdAndUpdate(workspaceId, {
+        $set: {
+          wallet: {
+            balance: balanceRupees,
+            availableBalance: wallet.availableBalance,
+            parkedBalance: wallet.parkedBalance || 0,
+            currency: wallet.currency || 'INR',
+          }
+        }
+      });
+    } catch (err: any) {
+      console.warn('[LedgerService] Non-fatal: failed to sync workspace.wallet document:', err.message);
+    }
+  }
+
   async getWallet(workspaceId: string) {
     let wallet = await WalletModel.findOne({ workspaceId });
     if (!wallet) {
       wallet = await WalletModel.create({ workspaceId, availableBalance: 0, parkedBalance: 0 });
     }
+    await this.syncWorkspaceDoc(workspaceId, wallet);
     return wallet;
   }
 
@@ -55,6 +75,7 @@ export class LedgerService {
       }
     }, { upsert: true });
 
+    await this.syncWorkspaceDoc(workspaceId, wallet);
     return wallet;
   }
 
@@ -101,6 +122,7 @@ export class LedgerService {
       status: 'COMPLETED'
     });
 
+    await this.syncWorkspaceDoc(workspaceId, wallet);
     return wallet;
   }
 
@@ -133,6 +155,7 @@ export class LedgerService {
       externalReferenceId: idempotencyKey,
       status: 'COMPLETED'
     });
+    await this.syncWorkspaceDoc(workspaceId, wallet);
   }
 
   /**
@@ -171,6 +194,7 @@ export class LedgerService {
       externalReferenceId: idempotencyKey,
       status: 'COMPLETED'
     });
+    await this.syncWorkspaceDoc(workspaceId, wallet);
   }
 
   /**
@@ -216,6 +240,7 @@ export class LedgerService {
     });
     await tx.save();
 
+    await this.syncWorkspaceDoc(workspaceId, wallet);
     return wallet;
   }
 }

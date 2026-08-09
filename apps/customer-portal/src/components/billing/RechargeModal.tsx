@@ -22,6 +22,7 @@ import { CreditCard, DollarSign, Zap, Loader2, CheckCircle2 } from 'lucide-react
 import { toast } from 'sonner';
 import { rechargeWallet, verifyPayment } from '@/lib/api/billing';
 import { useQueryClient } from '@tanstack/react-query';
+import { formatWalletMoney, loadRazorpayScript } from '@/lib/utils';
 
 interface RechargeModalProps {
   isOpen: boolean;
@@ -62,6 +63,7 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR', payme
 
     setIsProcessing(true);
     try {
+      await loadRazorpayScript();
       // 1. Create Order
       const orderData: any = await rechargeWallet({
         amountPaise: amountNum * 100

@@ -22,7 +22,7 @@ import { Check, Zap, Shield, Rocket, ArrowRight, Loader2, Lock, X } from 'lucide
 import { useQuery } from '@tanstack/react-query';
 import { fetchBillingPlan, selectBillingPlan, verifyBillingPlanPayment } from '@/lib/api/billing';
 import { toast } from 'sonner';
-import { formatMoneyFromMinorUnits } from '@/lib/utils';
+import { formatMoneyFromMinorUnits, loadRazorpayScript } from '@/lib/utils';
 
 interface PlanSelectionModalProps {
   isOpen: boolean;
@@ -50,16 +50,6 @@ export default function PlanSelectionModal({
   const availablePlans = Array.isArray(plans?.data) ? plans.data : [];
   const paymentEnabled = plans?.paymentEnabled === true;
 
-  React.useEffect(() => {
-    if (!isOpen || !paymentEnabled || document.querySelector('script[data-razorpay-checkout]')) return;
-
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.dataset.razorpayCheckout = 'true';
-    document.body.appendChild(script);
-  }, [isOpen, paymentEnabled]);
-
   const handleSwitchPlan = async (plan: any) => {
     if (plan.slug === currentPlanSlug) return;
     if (Number(plan.monthlyBaseFeeCents || 0) > 0 && !paymentEnabled) {
@@ -72,6 +62,7 @@ export default function PlanSelectionModal({
       const response: any = await selectBillingPlan(plan.slug);
 
       if (response.requiresPayment) {
+        await loadRazorpayScript();
         // Init Razorpay Checkout
         const options = {
           key: response.keyId,

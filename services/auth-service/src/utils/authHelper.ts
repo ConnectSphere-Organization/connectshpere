@@ -117,28 +117,20 @@ export async function buildSessionPayload(user: any) {
   let liveWallet = normalizeWorkspaceWallet(workspace?.wallet);
   try {
     const billingServiceUrl = (config as any).billingServiceUrl || 'http://localhost:3003';
-    const walletData: any = await new Promise((resolve, reject) => {
-      const req = http.get(
-        `${billingServiceUrl}/api/billing/wallets/${workspaceId}`,
-        { headers: { 'x-internal-service-secret': (config as any).internalServiceSecret || '' } },
-        (res) => {
-          let data = '';
-          res.on('data', (chunk: any) => data += chunk);
-          res.on('end', () => {
-            try { resolve(JSON.parse(data)); } catch { reject(new Error('parse error')); }
-          });
-        }
-      );
-      req.on('error', reject);
-      req.setTimeout(1500, () => { req.destroy(); reject(new Error('timeout')); });
+    const response = await fetch(`${billingServiceUrl}/api/billing/wallets/${workspaceId}`, {
+      headers: { 'x-internal-service-secret': (config as any).internalServiceSecret || '' },
+      signal: AbortSignal.timeout(1500),
     });
-    if (walletData?.wallet) {
-      liveWallet = {
-        balance: walletData.wallet.availableBalance / 100,  // paise → rupees
-        thresholdAmount: workspace?.wallet?.thresholdAmount || 500,
-        currency: walletData.wallet.currency || 'INR',
-        isServiceDown: false,
-      };
+    if (response.ok) {
+      const walletData: any = await response.json();
+      if (walletData?.wallet) {
+        liveWallet = {
+          balance: walletData.wallet.availableBalance / 100,  // paise → rupees
+          thresholdAmount: workspace?.wallet?.thresholdAmount || 500,
+          currency: walletData.wallet.currency || 'INR',
+          isServiceDown: false,
+        };
+      }
     }
   } catch {
     // Billing-service unavailable — use fallback (already set above)

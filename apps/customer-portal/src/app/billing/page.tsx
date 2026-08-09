@@ -12,6 +12,7 @@ import { createPaymentMethodVerification, fetchBillingInfo, getInvoiceDownloadUr
 import { toast } from 'sonner';
 import FlashLoader from '@/components/ui/flash-loader';
 import { useAuthStore } from '@/store/auth-store';
+import { formatWalletMoney, loadRazorpayScript } from '@/lib/utils';
 import RechargeModal from '@/components/billing/RechargeModal';
 import PlanSelectionModal from '@/components/billing/PlanSelectionModal';
 
@@ -74,6 +75,7 @@ export default function BillingPage() {
 
         setIsAddingPaymentMethod(true);
         try {
+            await loadRazorpayScript();
             // 1. Create Verification Order (₹1)
             const orderData: any = await createPaymentMethodVerification();
 
@@ -163,7 +165,7 @@ export default function BillingPage() {
                     <CardContent className="p-8 space-y-4">
                         <Badge className="bg-white/10 text-white border-white/20 px-3 py-0.5 rounded-full font-black text-[10px] tracking-widest uppercase">Wallet Balance</Badge>
                         <div className="space-y-1">
-                            <p className="text-4xl font-black">{wallet.currency} {wallet.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            <p className="text-4xl font-black">{formatWalletMoney(wallet.balance, wallet.currency)}</p>
                             <p className="text-xs text-slate-400 font-medium">Credits refresh automatically on recharge.</p>
                         </div>
                         <Button

@@ -13,7 +13,7 @@ const envSchema = z.object({
     required_error: 'INTERNAL_SERVICE_SECRET is required',
   }).min(1, 'INTERNAL_SERVICE_SECRET cannot be empty'),
   NODE_ENV: z.string().optional().default('development'),
-  RAZORPAY_ENABLED: z.enum(['true', 'false']).optional().default('false'),
+  RAZORPAY_ENABLED: z.enum(['true', 'false']).optional(),
   ALLOW_UNSIGNED_DEV_PAYMENT_WEBHOOKS: z.enum(['true', 'false']).optional().default('false'),
 });
 
@@ -31,7 +31,7 @@ const paymentPolicy = validatePaymentPolicy({
   razorpayEnabled: process.env.RAZORPAY_ENABLED,
   keyId: process.env.RAZORPAY_KEY_ID,
   keySecret: process.env.RAZORPAY_KEY_SECRET,
-  webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET,
+  webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET,
   allowUnsignedDevWebhooks: process.env.ALLOW_UNSIGNED_DEV_PAYMENT_WEBHOOKS,
 });
 
@@ -50,7 +50,7 @@ export const config = {
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
   razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',
-  razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
+  razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET || '',
   razorpayEnabled: paymentPolicy.enabled,
   allowUnsignedDevPaymentWebhooks: paymentPolicy.allowUnsignedDevWebhooks,
   bspServiceUrl: process.env.BSP_SERVICE_URL || 'http://localhost:3004',
