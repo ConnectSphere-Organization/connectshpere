@@ -4,6 +4,7 @@ import Redis from 'ioredis';
 import { MongoClient } from 'mongodb';
 import { config } from './config/env.js';
 import { normalizeWebhookProvider, verifyProviderSignature } from './webhook-security.js';
+import { isEmptyWebhookProbe } from './webhook-probe.js';
 import { MetricsRegistry } from '@connectsphere/contracts';
 
 const server = fastify({
@@ -252,6 +253,14 @@ server.get('/webhooks/:provider', async (req, reply) => {
 async function handleWebhookPost(req: any, reply: any, providerParam?: string) {
   const headers = req.headers;
   const rawBodyBuffer = req.body as Buffer;
+
+  // Gupshup's subscription validator sends an empty POST to prove that the
+  // callback is reachable.  Acknowledge only that empty probe; non-empty
+  // callbacks continue through mandatory signature and JSON validation below.
+  if (isEmptyWebhookProbe(rawBodyBuffer)) {
+    return reply.status(200).send({ success: true, service: 'webhook-ingestor' });
+  }
+
   if (!Buffer.isBuffer(rawBodyBuffer)) {
     return reply.status(400).send({ success: false, error: { code: 'INVALID_WEBHOOK_BODY', message: 'Webhook body must be JSON' } });
   }
