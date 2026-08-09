@@ -40,6 +40,22 @@ spec:
               value: '{{ingressHost}}'
             - name: service.targetPort
               value: '{{containerPort}}'
+            - name: "ingress.extraPaths[0].path"
+              value: "/socket.io"
+            - name: "ingress.extraPaths[0].pathType"
+              value: "Prefix"
+            - name: "ingress.extraPaths[0].backend.service.name"
+              value: "api-gateway"
+            - name: "ingress.extraPaths[0].backend.service.port.name"
+              value: "http"
+            - name: "ingress.extraPaths[1].path"
+              value: "/api"
+            - name: "ingress.extraPaths[1].pathType"
+              value: "Prefix"
+            - name: "ingress.extraPaths[1].backend.service.name"
+              value: "api-gateway"
+            - name: "ingress.extraPaths[1].backend.service.port.name"
+              value: "http"
       destination:
         server: https://kubernetes.default.svc
         namespace: production
