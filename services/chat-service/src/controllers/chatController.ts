@@ -523,12 +523,22 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
         });
       }
 
+      // service-provider persists dispatch attempts by this identifier. Reuse
+      // a caller-provided key across retries; otherwise make one per send.
+      const internalMessageId = req.header('x-idempotency-key')
+        || req.header('idempotency-key')
+        || new mongoose.Types.ObjectId().toString();
+
       console.log(`[Chat Service] Dispatching outbound to bsp-service: ${bspUrl}/internal/v1/bsp/messages/send`);
 
       const bspRes = await axios.post(
         `${bspUrl}/internal/v1/bsp/messages/send`,
         {
           workspaceId: conversation.workspace.toString(),
+          internalMessageId,
+          idempotencyKey: internalMessageId,
+          conversationId: conversation._id.toString(),
+          contactId: (conversation.contact as any)?._id?.toString?.(),
           appId,
           to: conversation.contact.phone || (conversation.contact as any).phone || '',
           type,
@@ -756,12 +766,22 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
         });
       }
 
+      // service-provider persists dispatch attempts by this identifier. Reuse
+      // a caller-provided key across retries; otherwise make one per send.
+      const internalMessageId = req.header?.('x-idempotency-key')
+        || req.header?.('idempotency-key')
+        || new mongoose.Types.ObjectId().toString();
+
       console.log(`[Chat Service] Dispatching outbound to bsp-service: ${bspUrl}/internal/v1/bsp/messages/send`);
 
       const bspRes = await axios.post(
         `${bspUrl}/internal/v1/bsp/messages/send`,
         {
           workspaceId: workspaceId.toString(),
+          internalMessageId,
+          idempotencyKey: internalMessageId,
+          conversationId: conversation._id.toString(),
+          contactId: contactDoc._id?.toString?.(),
           appId,
           to: contactDoc.phone || '',
           type,
