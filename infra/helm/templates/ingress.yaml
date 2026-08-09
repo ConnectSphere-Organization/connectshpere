@@ -9,14 +9,26 @@ metadata:
     {{- toYaml .Values.ingress.annotations | nindent 4 }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
+  {{- if eq .Release.Name "customer-portal" }}
+  # This ingress owns the public customer hostname. Cert-manager provisions
+  # the certificate once here; the API gateway shares the hostname for /api.
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host | quote }}
+      secretName: {{ include "enterprise.fullname" . }}-tls
+  {{- end }}
   rules:
     - host: {{ .Values.ingress.host | quote }}
       http:
         paths:
-          {{- if .Values.ingress.extraPaths }}
+          {{- if and (eq .Release.Name "customer-portal") .Values.ingress.extraPaths }}
           {{- toYaml .Values.ingress.extraPaths | nindent 10 }}
           {{- end }}
-          - path: /
+          # Customer traffic remains on the portal while API traffic is
+          # explicitly routed to the gateway. This also keeps the Socket.IO
+          # route owned by a single ingress, avoiding NGINX duplicate-path
+          # admission failures.
+          - path: {{ if eq .Release.Name "api-gateway" }}/api{{ else }}/{{ end }}
             pathType: Prefix
             backend:
               service:

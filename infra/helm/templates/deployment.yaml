@@ -126,11 +126,18 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ .Values.runtimeSecretName }}
-            {{- if eq .Release.Name "service-provider" }}
+            {{- if or (eq .Release.Name "service-provider") (eq .Release.Name "admin-portal") }}
             # Gupshup partner credentials are synchronized from Azure Key Vault
-            # by this release's SecretProviderClass.
+            # by this release's SecretProviderClass. The admin portal uses
+            # them only for server-side subscription management.
             - secretRef:
                 name: {{ include "enterprise.fullname" . }}-gupshup-secret
+            {{- end }}
+            {{- if eq .Release.Name "admin-portal" }}
+            # The admin portal reads provider app/subscription state from the
+            # BSP-owned database.
+            - secretRef:
+                name: {{ include "enterprise.fullname" . }}-bsp-mongodb-secret
             {{- end }}
           {{- end }}
           # Backends do not expose a uniform HTTP health endpoint. A TCP probe
