@@ -38,6 +38,15 @@ spec:
               value: '{{ingressClass}}'
             - name: ingress.host
               value: '{{ingressHost}}'
+            # Engine.IO keeps a polling session in the selected Socket.IO
+            # process. Keep each browser on one upstream pod for the full
+            # handshake/upgrade lifecycle.
+            - name: ingress.annotations.nginx\.ingress\.kubernetes\.io/affinity
+              value: cookie
+            - name: ingress.annotations.nginx\.ingress\.kubernetes\.io/session-cookie-name
+              value: connectsphere_socket_route
+            - name: ingress.annotations.nginx\.ingress\.kubernetes\.io/session-cookie-path
+              value: /socket.io
             - name: service.targetPort
               value: '{{containerPort}}'
             - name: "ingress.extraPaths[0].path"
@@ -45,7 +54,10 @@ spec:
             - name: "ingress.extraPaths[0].pathType"
               value: "Prefix"
             - name: "ingress.extraPaths[0].backend.service.name"
-              value: "api-gateway"
+              # Do not send Engine.IO through the horizontally-scaled API
+              # gateway. Route it directly to Socket.IO so the ingress
+              # affinity cookie selects the actual session owner.
+              value: "websocket-gateway-enterprise-service"
             - name: "ingress.extraPaths[0].backend.service.port.name"
               value: "http"
             - name: "ingress.extraPaths[1].path"
