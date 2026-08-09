@@ -131,9 +131,11 @@ export async function buildSessionPayload(user: any) {
           isServiceDown: false,
         };
       }
+    } else {
+      console.warn(`[AuthHelper] Billing service returned HTTP ${response.status} for workspace ${workspaceId}. Falling back to workspace.wallet.`);
     }
-  } catch {
-    // Billing-service unavailable — use fallback (already set above)
+  } catch (err: any) {
+    console.warn(`[AuthHelper] Live wallet fetch from billing-service failed (${(config as any).billingServiceUrl || 'http://localhost:3003'}): ${err.message}. Falling back to workspace.wallet.`);
   }
 
   const stage1Complete = !!(

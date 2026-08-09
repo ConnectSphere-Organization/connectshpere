@@ -19,6 +19,7 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   ADMIN_GOOGLE_SIGNUP_EMAILS: z.string().optional(),
   ALLOW_DEV_AUTH_MOCKS: z.enum(['true', 'false']).optional().default('false'),
+  BILLING_SERVICE_URL: z.string().optional(),
 });
 
 const envParseResult = envSchema.safeParse(process.env);

@@ -811,6 +811,7 @@ const wsProxy = createProxyMiddleware({
   target: SERVICES.websocket,
   changeOrigin: true,
   ws: true,
+  pathRewrite: (path) => (path.startsWith('/socket.io') ? path : `/socket.io${path}`),
   on: {
     error: handleProxyError('websocket-gateway')
   }
