@@ -108,6 +108,12 @@ spec:
             - name: BACKEND_API_URL
               value: http://api-gateway-enterprise-service.production.svc.cluster.local:8080
             {{- end }}
+            {{- if or (eq .Release.Name "admin-portal") (eq .Release.Name "service-provider") }}
+            # Public, TLS-verified callback used for Gupshup V3 webhook
+            # subscriptions. It enters through API Gateway and the ingestor.
+            - name: WHATSAPP_WEBHOOK_URL
+              value: https://connectsphere-customer-vivek.eastus2.cloudapp.azure.com/api/webhooks/whatsapp
+            {{- end }}
             {{- if .Values.azureKeyVault.enabled }}
             - name: MONGODB_URI
               valueFrom:

@@ -227,12 +227,18 @@ server.get('/webhooks', async (req, reply) => {
 
   const localVerifyToken = config.verifyToken;
 
-  if (hubChallenge && hubVerifyToken === localVerifyToken) {
-    console.log('[Webhook Ingestor] Subscription validation successful.');
-    return reply.status(200).send(hubChallenge);
+  if (hubChallenge) {
+    if (hubVerifyToken === localVerifyToken) {
+      console.log('[Webhook Ingestor] Subscription validation successful.');
+      return reply.status(200).send(hubChallenge);
+    }
+    return reply.status(403).send({ error: 'VERIFICATION_FAILED' });
   }
 
-  return reply.status(403).send({ error: 'VERIFICATION_FAILED' });
+  // Gupshup performs a reachability probe without Meta's hub parameters before
+  // it accepts a V3 subscription. This is only a liveness acknowledgement;
+  // actual webhook POSTs still require a valid provider signature.
+  return reply.status(200).send({ success: true, service: 'webhook-ingestor' });
 });
 
 server.get('/webhooks/:provider', async (req, reply) => {

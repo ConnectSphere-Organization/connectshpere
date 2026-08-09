@@ -61,6 +61,9 @@ const GUPSHUP_MODES = [
   "ENQUEUED", "TEMPLATE", "ACCOUNT", "BILLING", "PAYMENTS", "FLOWS_MESSAGE",
 ];
 
+const DEFAULT_GUPSHUP_WEBHOOK_URL =
+  "https://connectsphere-customer-vivek.eastus2.cloudapp.azure.com/api/webhooks/whatsapp";
+
 type GupshupOpResult = {
   ok?: boolean;
   data?: {
@@ -115,8 +118,8 @@ export default function WorkspacesPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "connected" | "attention">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [webhookForm, setWebhookForm] = useState({ url: "", modes: GUPSHUP_MODES, strategy: "update" });
-  const [bulkForm, setBulkForm] = useState({ url: "", modes: GUPSHUP_MODES, strategy: "update" });
+  const [webhookForm, setWebhookForm] = useState({ url: DEFAULT_GUPSHUP_WEBHOOK_URL, modes: GUPSHUP_MODES, strategy: "update" });
+  const [bulkForm, setBulkForm] = useState({ url: DEFAULT_GUPSHUP_WEBHOOK_URL, modes: GUPSHUP_MODES, strategy: "update" });
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["workspaces"],
