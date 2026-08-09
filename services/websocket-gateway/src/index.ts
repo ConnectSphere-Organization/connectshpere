@@ -43,6 +43,13 @@ const corsOrigin = (origin: string | undefined, callback: (err: Error | null, al
   callback(new Error(`Origin ${origin} is not allowed by websocket CORS`), false);
 };
 
+// Normalize /socket.io? -> /socket.io/? so Engine.IO matches regardless of trailing slash
+httpServer.on('request', (req) => {
+  if (req.url && req.url.startsWith('/socket.io?')) {
+    req.url = req.url.replace('/socket.io?', '/socket.io/?');
+  }
+});
+
 const io = new SocketIOServer(httpServer, {
   cors: {
     origin: corsOrigin,
