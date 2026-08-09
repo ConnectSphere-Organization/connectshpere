@@ -15,10 +15,6 @@ spec:
             ingressClass: nginx
             ingressHost: connectsphere-admin-vivek.eastus2.cloudapp.azure.com
             containerPort: '3100'
-          - service: career-portal
-            ingressClass: nginx-career
-            ingressHost: connectsphere-career-vivek.eastus2.cloudapp.azure.com
-            containerPort: '3001'
   template:
     metadata:
       name: '{{service}}'

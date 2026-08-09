@@ -20,7 +20,6 @@ SERVICES=(
   "websocket-gateway"
   "customer-portal"
   "admin-portal"
-  "career-portal"
 )
 
 for SERVICE in "${SERVICES[@]}"; do

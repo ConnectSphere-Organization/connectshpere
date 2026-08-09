@@ -91,13 +91,6 @@ spec:
             ingressEnabled: "true"
             ingressClass: "nginx"
             ingressHost: "connectsphere-admin-vivek.eastus2.cloudapp.azure.com"
-          - service: career-portal
-            containerPort: "3001"
-            livenessPath: "/"
-            readinessPath: "/"
-            ingressEnabled: "true"
-            ingressClass: "nginx-career"
-            ingressHost: "connectsphere-career-vivek.eastus2.cloudapp.azure.com"
   template:
     metadata:
       name: '{{service}}'

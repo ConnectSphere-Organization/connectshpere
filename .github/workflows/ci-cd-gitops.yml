@@ -32,7 +32,6 @@ jobs:
           - websocket-gateway
           - customer-portal
           - admin-portal
-          - career-portal
 
     steps:
       - name: Checkout Code
