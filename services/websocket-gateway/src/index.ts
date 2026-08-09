@@ -58,6 +58,11 @@ const io = new SocketIOServer(httpServer, {
   transports: ['websocket', 'polling'],
 });
 
+// Explicitly route Express /socket.io requests to Engine.IO engine to avoid Express 404 handler
+app.use('/socket.io', (req, res) => {
+  io.engine.handleRequest(req, res);
+});
+
 io.on('connection', (socket) => {
   metrics.increment('websocket_connections_total', 'Accepted WebSocket connections');
   metrics.gauge('websocket_active_connections', 'Current active WebSocket connections', io.engine.clientsCount);
