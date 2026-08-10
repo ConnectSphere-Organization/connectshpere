@@ -20,6 +20,19 @@ export interface BspDispatchResult {
   dispatchResult: any;
 }
 
+/** Normalize text produced by rule actions and visual-workflow message nodes. */
+export function resolveAutomationText(payload: any, config: any): string | undefined {
+  const candidate =
+    payload?.text ??
+    payload?.body ??
+    config?.body ??
+    config?.messageContent ??
+    config?.text ??
+    config?.message;
+
+  return typeof candidate === 'string' && candidate.trim() ? candidate : undefined;
+}
+
 function providerError(body: any, fallback: string): string {
   return body?.message || body?.error?.message || body?.error || fallback;
 }

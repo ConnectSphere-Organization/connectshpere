@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { dispatchBspMessage } from '../src/services/bsp-dispatch.js';
+import { dispatchBspMessage, resolveAutomationText } from '../src/services/bsp-dispatch.js';
+
+test('normalizes text from visual-workflow message nodes', () => {
+  assert.equal(resolveAutomationText({}, { messageContent: 'welcome' }), 'welcome');
+  assert.equal(resolveAutomationText({}, { body: 'rule reply' }), 'rule reply');
+  assert.equal(resolveAutomationText({ text: 'direct text' }, { messageContent: 'fallback' }), 'direct text');
+  assert.equal(resolveAutomationText({}, { messageContent: '   ' }), undefined);
+});
 
 test('sends the required correlation fields and returns the provider message ID', async (t) => {
   let requestBody: any;

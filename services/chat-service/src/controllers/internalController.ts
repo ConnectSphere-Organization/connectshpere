@@ -6,7 +6,7 @@ import { Product } from '../models/Product.js';
 import { CheckoutBotService } from '../services/checkout-bot-service.js';
 import { eventProducer, simulatedMode } from '../services/eventBus.js';
 import { chargeTemplateMessage, refundTemplateCharge } from '../services/billing-client.js';
-import { dispatchBspMessage } from '../services/bsp-dispatch.js';
+import { dispatchBspMessage, resolveAutomationText } from '../services/bsp-dispatch.js';
 
 /**
  * Shared dispatcher for bot-originated outbound messages (text / interactive / flow).
@@ -378,7 +378,13 @@ export const internalController = {
       switch (action) {
         case 'send_text':
         case 'send_message': {
-          const text = payload.text ?? config.body;
+          const text = resolveAutomationText(payload, config);
+          if (!text) {
+            return res.status(400).json({
+              success: false,
+              error: 'A non-empty text body is required for send_message',
+            });
+          }
 
           let contact;
           try {
