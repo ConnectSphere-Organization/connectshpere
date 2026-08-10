@@ -119,6 +119,23 @@ spec:
             - name: API_GATEWAY_URL
               value: http://api-gateway-enterprise-service.production.svc.cluster.local:8080
             {{- end }}
+            {{- if eq .Release.Name "campaign-service" }}
+            # Campaign lifecycle/preflight invokes these services directly.
+            # The development defaults point to this pod's localhost and turn
+            # a valid start request into a downstream 500 in production.
+            - name: CHAT_SERVICE_URL
+              value: http://chat-service-enterprise-service.production.svc.cluster.local:8080
+            - name: BSP_SERVICE_URL
+              value: http://service-provider-enterprise-service.production.svc.cluster.local:8080
+            - name: CONTACT_SERVICE_URL
+              value: http://contact-service-enterprise-service.production.svc.cluster.local:8080
+            - name: BILLING_SERVICE_URL
+              value: http://billing-service-enterprise-service.production.svc.cluster.local:8080
+            - name: AUTOMATION_SERVICE_URL
+              value: http://automation-service-enterprise-service.production.svc.cluster.local:8080
+            - name: API_GATEWAY_URL
+              value: http://api-gateway-enterprise-service.production.svc.cluster.local:8080
+            {{- end }}
             {{- if eq .Release.Name "customer-portal" }}
             # Next.js evaluates rewrites in the portal container.
             - name: BACKEND_API_URL

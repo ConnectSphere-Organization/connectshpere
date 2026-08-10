@@ -24,12 +24,26 @@ if (!envParseResult.success) {
 const jwtSecret = process.env.JWT_SECRET!;
 const internalServiceSecret = process.env.INTERNAL_SERVICE_SECRET!;
 
+const serviceUrls = {
+  billingServiceUrl: process.env.BILLING_SERVICE_URL || 'http://localhost:3003',
+  bspServiceUrl: process.env.BSP_SERVICE_URL || 'http://localhost:3004',
+  chatServiceUrl: process.env.CHAT_SERVICE_URL || 'http://localhost:3008',
+  contactServiceUrl: process.env.CONTACT_SERVICE_URL || 'http://localhost:3007',
+  automationServiceUrl: process.env.AUTOMATION_SERVICE_URL || 'http://localhost:3001',
+  apiGatewayUrl: process.env.API_GATEWAY_URL || process.env.MONOLITH_URL || 'http://localhost:5001',
+};
+
 if (process.env.NODE_ENV === 'production') {
   if (jwtSecret === 'your-secret-key-change-in-production' || jwtSecret === 'your-jwt-secret') {
     throw new Error('FATAL: A secure, non-default JWT_SECRET environment variable is required in production.');
   }
   if (internalServiceSecret === 'dev-internal-service-secret-change-me') {
     throw new Error('FATAL: A secure, non-default INTERNAL_SERVICE_SECRET environment variable is required in production.');
+  }
+  for (const [name, value] of Object.entries(serviceUrls)) {
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(?::|\/|$)/i.test(value)) {
+      throw new Error(`FATAL: ${name} must use an in-cluster service URL in production.`);
+    }
   }
 }
 
@@ -41,12 +55,7 @@ export const config = {
     process.env.MONGODB_URI ||
     'mongodb://localhost:27017/wa_campaigns',
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-  billingServiceUrl: process.env.BILLING_SERVICE_URL || 'http://localhost:3003',
-  bspServiceUrl: process.env.BSP_SERVICE_URL || 'http://localhost:3004',
-  chatServiceUrl: process.env.CHAT_SERVICE_URL || 'http://localhost:3008',
-  contactServiceUrl: process.env.CONTACT_SERVICE_URL || 'http://localhost:3007',
-  automationServiceUrl: process.env.AUTOMATION_SERVICE_URL || 'http://localhost:3001',
-  apiGatewayUrl: process.env.API_GATEWAY_URL || process.env.MONOLITH_URL || 'http://localhost:5001',
+  ...serviceUrls,
   jwtSecret,
   internalServiceSecret,
 };
