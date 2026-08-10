@@ -11,6 +11,7 @@ const envSchema = z.object({
   INTERNAL_SERVICE_SECRET: z.string({
     required_error: 'INTERNAL_SERVICE_SECRET is required',
   }).min(1, 'INTERNAL_SERVICE_SECRET cannot be empty'),
+  AUTOMATION_SERVICE_URL: z.string().url().optional(),
   NODE_ENV: z.string().optional().default('development'),
 });
 
@@ -23,6 +24,7 @@ if (!envParseResult.success) {
 
 const jwtSecret = process.env.JWT_SECRET!;
 const internalServiceSecret = process.env.INTERNAL_SERVICE_SECRET!;
+const automationServiceUrl = process.env.AUTOMATION_SERVICE_URL || 'http://localhost:3001';
 
 if (process.env.NODE_ENV === 'production') {
   if (jwtSecret === 'your-secret-key-change-in-production' || jwtSecret === 'your-jwt-secret') {
@@ -30,6 +32,9 @@ if (process.env.NODE_ENV === 'production') {
   }
   if (internalServiceSecret === 'dev-internal-service-secret-change-me') {
     throw new Error('FATAL: A secure, non-default INTERNAL_SERVICE_SECRET environment variable is required in production.');
+  }
+  if (!process.env.AUTOMATION_SERVICE_URL || automationServiceUrl.includes('localhost') || automationServiceUrl.includes('127.0.0.1')) {
+    throw new Error('FATAL: AUTOMATION_SERVICE_URL must reference the automation service in production.');
   }
 }
 
@@ -40,6 +45,7 @@ export const config = {
   redisUrl: process.env.REDIS_URL || '',
   jwtSecret,
   internalServiceSecret,
+  automationServiceUrl: automationServiceUrl.replace(/\/+$/, ''),
   authCookieName: 'auth_token',
 };
 

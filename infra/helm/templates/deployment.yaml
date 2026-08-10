@@ -102,6 +102,8 @@ spec:
               value: http://service-provider-enterprise-service.production.svc.cluster.local:8080
             - name: BILLING_SERVICE_URL
               value: http://billing-service-enterprise-service.production.svc.cluster.local:8080
+            - name: AUTOMATION_SERVICE_URL
+              value: http://automation-service-enterprise-service.production.svc.cluster.local:8080
             {{- end }}
             {{- if eq .Release.Name "customer-portal" }}
             # Next.js evaluates rewrites in the portal container.

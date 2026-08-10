@@ -398,8 +398,7 @@ export async function processParsedMessage(parsed: any) {
     // processInbound -> AutomationClient.handleInbound hand-off. Fire-and-forget so
     // message persistence is never blocked on the automation round-trip.
     if ((parsed.direction || 'inbound') === 'inbound') {
-      const automationUrl = process.env.AUTOMATION_SERVICE_URL || 'http://localhost:3001';
-      void fetch(`${automationUrl}/api/automation/engine/trigger-inbound`, {
+      void fetch(`${config.automationServiceUrl}/api/automation/engine/trigger-inbound`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
