@@ -61,13 +61,13 @@ export const config = {
   businessVerificationMandatory: rawEnv.NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY === 'true',
   appName: rawEnv.NEXT_PUBLIC_APP_NAME || 'ConnectSphare',
   optionalFeatures: {
-    commerce: rawEnv.NEXT_PUBLIC_FEATURE_COMMERCE === 'true',
-    aiFaq: rawEnv.NEXT_PUBLIC_FEATURE_AI_FAQ === 'true',
-    metaAds: rawEnv.NEXT_PUBLIC_FEATURE_META_ADS === 'true',
-    petpooja: rawEnv.NEXT_PUBLIC_FEATURE_PETPOOJA === 'true',
-    advancedAnswerbot: rawEnv.NEXT_PUBLIC_FEATURE_ADVANCED_ANSWERBOT === 'true',
-    developerApi: rawEnv.NEXT_PUBLIC_FEATURE_DEVELOPER_API === 'true',
-    forms: rawEnv.NEXT_PUBLIC_FEATURE_FORMS === 'true',
+    commerce: rawEnv.NEXT_PUBLIC_FEATURE_COMMERCE !== 'false',
+    aiFaq: rawEnv.NEXT_PUBLIC_FEATURE_AI_FAQ !== 'false',
+    metaAds: rawEnv.NEXT_PUBLIC_FEATURE_META_ADS !== 'false',
+    petpooja: rawEnv.NEXT_PUBLIC_FEATURE_PETPOOJA !== 'false',
+    advancedAnswerbot: rawEnv.NEXT_PUBLIC_FEATURE_ADVANCED_ANSWERBOT !== 'false',
+    developerApi: rawEnv.NEXT_PUBLIC_FEATURE_DEVELOPER_API !== 'false',
+    forms: rawEnv.NEXT_PUBLIC_FEATURE_FORMS !== 'false',
   },
 };
 
