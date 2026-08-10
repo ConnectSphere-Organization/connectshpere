@@ -105,6 +105,20 @@ spec:
             - name: AUTOMATION_SERVICE_URL
               value: http://automation-service-enterprise-service.production.svc.cluster.local:8080
             {{- end }}
+            {{- if eq .Release.Name "automation-service" }}
+            # Automation executes rule actions through the owning services.
+            # localhost here points back to automation itself, not chat/BSP.
+            - name: CHAT_SERVICE_URL
+              value: http://chat-service-enterprise-service.production.svc.cluster.local:8080
+            - name: CONTACT_SERVICE_URL
+              value: http://contact-service-enterprise-service.production.svc.cluster.local:8080
+            - name: BSP_SERVICE_URL
+              value: http://service-provider-enterprise-service.production.svc.cluster.local:8080
+            - name: SERVICE_PROVIDER_URL
+              value: http://service-provider-enterprise-service.production.svc.cluster.local:8080
+            - name: API_GATEWAY_URL
+              value: http://api-gateway-enterprise-service.production.svc.cluster.local:8080
+            {{- end }}
             {{- if eq .Release.Name "customer-portal" }}
             # Next.js evaluates rewrites in the portal container.
             - name: BACKEND_API_URL

@@ -14,6 +14,9 @@ const envSchema = z.object({
   INTEGRATION_ENCRYPTION_KEY: z.string({
     required_error: 'INTEGRATION_ENCRYPTION_KEY is required',
   }).min(1, 'INTEGRATION_ENCRYPTION_KEY cannot be empty'),
+  CHAT_SERVICE_URL: z.string().url().optional(),
+  CONTACT_SERVICE_URL: z.string().url().optional(),
+  BSP_SERVICE_URL: z.string().url().optional(),
 });
 
 const envParseResult = envSchema.safeParse(process.env);
@@ -26,6 +29,13 @@ if (!envParseResult.success) {
 const jwtSecret = process.env.JWT_SECRET!;
 const internalServiceSecret = process.env.INTERNAL_SERVICE_SECRET!;
 const integrationEncryptionKey = process.env.INTEGRATION_ENCRYPTION_KEY!;
+const chatServiceUrl = process.env.CHAT_SERVICE_URL || 'http://localhost:3008';
+const contactServiceUrl = process.env.CONTACT_SERVICE_URL || 'http://localhost:3007';
+const bspServiceUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
+
+function isLocalServiceUrl(value: string) {
+  return value.includes('localhost') || value.includes('127.0.0.1');
+}
 
 if (process.env.NODE_ENV === 'production') {
   if (jwtSecret === 'your-secret-key-change-in-production' || jwtSecret === 'your-jwt-secret') {
@@ -36,6 +46,15 @@ if (process.env.NODE_ENV === 'production') {
   }
   if (integrationEncryptionKey === 'change-me-in-production') {
     throw new Error('FATAL: A secure, non-default INTEGRATION_ENCRYPTION_KEY environment variable is required in production.');
+  }
+  if (!process.env.CHAT_SERVICE_URL || isLocalServiceUrl(chatServiceUrl)) {
+    throw new Error('FATAL: CHAT_SERVICE_URL must reference chat-service in production.');
+  }
+  if (!process.env.CONTACT_SERVICE_URL || isLocalServiceUrl(contactServiceUrl)) {
+    throw new Error('FATAL: CONTACT_SERVICE_URL must reference contact-service in production.');
+  }
+  if (!process.env.BSP_SERVICE_URL || isLocalServiceUrl(bspServiceUrl)) {
+    throw new Error('FATAL: BSP_SERVICE_URL must reference service-provider in production.');
   }
 }
 
@@ -50,9 +69,9 @@ export const config = {
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   jwtSecret,
   internalServiceSecret,
-  chatServiceUrl: process.env.CHAT_SERVICE_URL || 'http://localhost:3008',
-  contactServiceUrl: process.env.CONTACT_SERVICE_URL || 'http://localhost:3007',
-  bspServiceUrl: process.env.BSP_SERVICE_URL || 'http://localhost:3004',
+  chatServiceUrl: chatServiceUrl.replace(/\/+$/, ''),
+  contactServiceUrl: contactServiceUrl.replace(/\/+$/, ''),
+  bspServiceUrl: bspServiceUrl.replace(/\/+$/, ''),
   monolithInternalUrl: process.env.MONOLITH_INTERNAL_URL || process.env.API_GATEWAY_URL || 'http://localhost:5001',
   customerPortalUrl: process.env.CUSTOMER_PORTAL_URL || process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000',
   integrationEncryptionKey,
