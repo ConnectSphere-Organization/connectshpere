@@ -6,6 +6,7 @@ import { Product } from '../models/Product.js';
 import { CheckoutBotService } from '../services/checkout-bot-service.js';
 import { eventProducer, simulatedMode } from '../services/eventBus.js';
 import { chargeTemplateMessage, refundTemplateCharge } from '../services/billing-client.js';
+import { dispatchBspMessage } from '../services/bsp-dispatch.js';
 
 /**
  * Shared dispatcher for bot-originated outbound messages (text / interactive / flow).
@@ -69,20 +70,17 @@ async function dispatchBotOutbound(opts: {
   }
 
   const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
-  const bspRes = await fetch(`${bspUrl}/internal/v1/bsp/messages/send`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-internal-secret': process.env.INTERNAL_SERVICE_SECRET!,
-      'x-internal-service': 'chat-service',
-    },
-    body: JSON.stringify({ workspaceId, appId, to: phone, type: messageType, payload: waPayload }),
+  const { providerMessageId, dispatchResult } = await dispatchBspMessage({
+    bspUrl,
+    internalServiceSecret: process.env.INTERNAL_SERVICE_SECRET || '',
+    workspaceId,
+    conversationId: conversation._id.toString(),
+    contactId: contact._id.toString(),
+    appId: String(appId),
+    to: phone,
+    type: messageType,
+    payload: waPayload,
   });
-  if (!bspRes.ok) {
-    throw new Error('BSP Message Dispatch failed: ' + bspRes.statusText);
-  }
-  const bspData = (await bspRes.json()) as any;
-  const dispatchResult = bspData.data || bspData;
 
   const chatMessage = await Message.create({
     workspace: new Types.ObjectId(workspaceId),
@@ -91,7 +89,8 @@ async function dispatchBotOutbound(opts: {
     direction: 'outbound',
     type: 'interactive',
     text: opts.previewText || '',
-    messageId: dispatchResult.providerMessageId || dispatchResult.messageId || `auto_${Date.now()}`,
+    messageId: providerMessageId,
+    whatsappMessageId: providerMessageId,
     status: 'sent',
   });
 
@@ -204,39 +203,32 @@ export const internalController = {
           }
 
           const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
-          let bspRes: globalThis.Response;
+          let dispatchResult: any;
+          let providerMessageId: string;
           try {
-            bspRes = await fetch(`${bspUrl}/internal/v1/bsp/messages/send`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-internal-secret': process.env.INTERNAL_SERVICE_SECRET!,
-                'x-internal-service': 'chat-service'
-              },
-              body: JSON.stringify({
-                workspaceId,
-                appId,
+            const dispatch = await dispatchBspMessage({
+              bspUrl,
+              internalServiceSecret: process.env.INTERNAL_SERVICE_SECRET || '',
+              workspaceId,
+              conversationId: conversation._id.toString(),
+              contactId: contact._id.toString(),
+              campaignId: options.campaignId,
+              appId: String(appId),
+              to,
+              type: 'template',
+              payload: {
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
                 to,
-                type: 'template',
-                payload: {
-                  messaging_product: 'whatsapp',
-                  recipient_type: 'individual',
-                  to,
-                  ...formattedPayload
-                }
-              })
+                ...formattedPayload,
+              },
             });
-
-            if (!bspRes.ok) {
-              throw new Error('BSP Message Dispatch failed: ' + bspRes.statusText);
-            }
+            dispatchResult = dispatch.dispatchResult;
+            providerMessageId = dispatch.providerMessageId;
           } catch (err: any) {
             await refundTemplateCharge(workspaceId, templateCharge, err.message);
             throw err;
           }
-
-          const bspData = await bspRes.json() as any;
-          const dispatchResult = bspData.data || bspData;
 
           const chatMessage = await Message.create({
             workspace: new Types.ObjectId(workspaceId),
@@ -245,7 +237,8 @@ export const internalController = {
             direction: 'outbound',
             type: 'template',
             text: templateName,
-            messageId: dispatchResult.providerMessageId || dispatchResult.messageId,
+            messageId: providerMessageId,
+            whatsappMessageId: providerMessageId,
             status: 'sent',
             campaign: options.campaignId ? {
               id: new Types.ObjectId(options.campaignId),
@@ -437,26 +430,22 @@ export const internalController = {
           }
 
           const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
-          await fetch(`${bspUrl}/internal/v1/bsp/messages/send`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-internal-secret': process.env.INTERNAL_SERVICE_SECRET!,
-              'x-internal-service': 'chat-service'
-            },
-            body: JSON.stringify({
-              workspaceId,
-              appId,
+          const { providerMessageId, dispatchResult } = await dispatchBspMessage({
+            bspUrl,
+            internalServiceSecret: process.env.INTERNAL_SERVICE_SECRET || '',
+            workspaceId: String(workspaceId),
+            conversationId: conversation._id.toString(),
+            contactId: contact._id.toString(),
+            appId: String(appId),
+            to: payload.phone,
+            type: 'text',
+            payload: {
+              messaging_product: 'whatsapp',
+              recipient_type: 'individual',
               to: payload.phone,
               type: 'text',
-              payload: {
-                messaging_product: 'whatsapp',
-                recipient_type: 'individual',
-                to: payload.phone,
-                type: 'text',
-                text: { body: text }
-              }
-            })
+              text: { body: text },
+            },
           });
 
           const chatMessage = await Message.create({
@@ -466,7 +455,8 @@ export const internalController = {
             direction: 'outbound',
             type: 'text',
             text: text,
-            messageId: `auto_${Date.now()}`,
+            messageId: providerMessageId,
+            whatsappMessageId: providerMessageId,
             status: 'sent',
           });
 
@@ -486,7 +476,7 @@ export const internalController = {
               messages: [{ key: conversation._id.toString(), value: JSON.stringify(syncPayload) }],
             });
           }
-          break;
+          return res.json({ success: true, message: chatMessage, result: dispatchResult });
         }
 
         case 'send_template': {
