@@ -1,6 +1,5 @@
-export function buildGupshupWebhookUrl(value: string, verifyToken: string): string {
+export function buildGupshupWebhookUrl(value: string): string {
   if (!value.trim()) throw new Error("Webhook URL is required");
-  if (!verifyToken.trim()) throw new Error("WEBHOOK_VERIFY_TOKEN is required for secure Gupshup callbacks");
 
   const url = new URL(value.trim());
   if (url.protocol !== "https:") throw new Error("Gupshup webhook URL must use HTTPS");
@@ -8,6 +7,8 @@ export function buildGupshupWebhookUrl(value: string, verifyToken: string): stri
   if (!url.pathname.includes("/api/webhooks/")) {
     url.pathname = `${url.pathname.replace(/\/+$/, "")}/api/webhooks/whatsapp`;
   }
-  url.searchParams.set("verify_token", verifyToken);
+  // Gupshup must retain the canonical callback exactly. Remove the temporary
+  // query-token workaround used before native Gupshup payload validation.
+  url.searchParams.delete("verify_token");
   return url.toString();
 }

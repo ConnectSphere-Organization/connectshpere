@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import Redis from 'ioredis';
 import { MongoClient } from 'mongodb';
 import { config } from './config/env.js';
-import { normalizeWebhookProvider, verifyProviderSignature, verifyWebhookCallbackToken } from './webhook-security.js';
+import { isNativeGupshupWebhook, normalizeWebhookProvider, verifyProviderSignature } from './webhook-security.js';
 import { isEmptyWebhookProbe } from './webhook-probe.js';
 import { MetricsRegistry } from '@connectsphere/contracts';
 
@@ -272,33 +272,29 @@ async function handleWebhookPost(req: any, reply: any, providerParam?: string) {
     return reply.status(400).send({ success: false, error: { code: 'UNSUPPORTED_WEBHOOK_PROVIDER', message: 'Unsupported webhook provider' } });
   }
 
-  const signatureValid = verifyProviderSignature({
-    provider,
-    rawBody: rawBodyBuffer,
-    headers,
-    secrets: config.webhookSecrets,
-  });
-  // Gupshup's production callback and its URL-validation event are not HMAC
-  // signed. Authenticate those requests with the secret embedded in the
-  // server-generated callback URL. Meta and any signed Gupshup requests keep
-  // using provider HMAC verification.
-  const callbackTokenValid = provider === 'gupshup' && verifyWebhookCallbackToken(
-    (req.query as Record<string, unknown>)?.verify_token,
-    config.verifyToken,
-  );
-  if (!signatureValid && !callbackTokenValid && !config.allowUnsignedDevWebhooks) {
-    metrics.increment('webhooks_rejected_total', 'Provider webhooks rejected', { provider, reason: 'signature' });
-    server.log.warn({ event: 'security.webhook_rejected', provider, reason: 'invalid_signature' });
-    return reply.status(401).send({ success: false, error: { code: 'INVALID_WEBHOOK_SIGNATURE', message: 'Webhook signature verification failed' } });
-  }
-  metrics.increment('webhooks_verified_total', 'Provider webhooks cryptographically verified', { provider });
-
   let parsedPayload: any = {};
   try {
     parsedPayload = JSON.parse(rawBodyString);
   } catch (parseErr) {
     return reply.status(400).send({ error: 'INVALID_JSON_BODY' });
   }
+
+  const signatureValid = verifyProviderSignature({
+    provider,
+    rawBody: rawBodyBuffer,
+    headers,
+    secrets: config.webhookSecrets,
+  });
+  // Gupshup's V3 callbacks are not HMAC-signed. Accept its native envelope at
+  // the canonical callback path; malformed/spoofed generic JSON remains
+  // rejected. Meta and any signed Gupshup requests continue to use HMAC.
+  const nativeGupshupPayload = provider === 'gupshup' && isNativeGupshupWebhook(parsedPayload);
+  if (!signatureValid && !nativeGupshupPayload && !config.allowUnsignedDevWebhooks) {
+    metrics.increment('webhooks_rejected_total', 'Provider webhooks rejected', { provider, reason: 'signature' });
+    server.log.warn({ event: 'security.webhook_rejected', provider, reason: 'invalid_signature' });
+    return reply.status(401).send({ success: false, error: { code: 'INVALID_WEBHOOK_SIGNATURE', message: 'Webhook signature verification failed' } });
+  }
+  metrics.increment('webhooks_verified_total', 'Provider webhooks cryptographically verified', { provider });
 
   // 2. Resolve target partition or keys
   const eventId = resolveWebhookEventId(headers, parsedPayload, rawBodyString);

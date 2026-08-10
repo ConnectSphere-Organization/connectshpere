@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { resolveWebhookSignaturePolicy } from '../src/config/webhook-policy';
-import { normalizeWebhookProvider, verifyProviderSignature, verifyWebhookCallbackToken } from '../src/webhook-security';
+import { isNativeGupshupWebhook, normalizeWebhookProvider, verifyProviderSignature } from '../src/webhook-security';
 
 const body = Buffer.from('{"event":"message"}');
 const secrets = { gupshup: 'gupshup-secret', meta: 'meta-secret' };
@@ -29,8 +29,12 @@ test('rejects unsupported providers during normalization', () => {
     assert.equal(normalizeWebhookProvider('instagram'), null);
 });
 
-test('authenticates callback tokens without timing-unsafe string comparison', () => {
-    assert.equal(verifyWebhookCallbackToken('callback-secret', 'callback-secret'), true);
-    assert.equal(verifyWebhookCallbackToken('wrong', 'callback-secret'), false);
-    assert.equal(verifyWebhookCallbackToken(undefined, 'callback-secret'), false);
+test('accepts only the native Gupshup webhook envelope when unsigned', () => {
+    assert.equal(isNativeGupshupWebhook({
+        object: 'whatsapp_business_account',
+        gs_app_id: '203a5e43-c560-44c8-be2e-4044e0b0b941',
+        entry: [{ changes: [{ field: 'messages', value: { messages: [] } }] }],
+    }), true);
+    assert.equal(isNativeGupshupWebhook({ object: 'whatsapp_business_account', entry: [] }), false);
+    assert.equal(isNativeGupshupWebhook({ event: 'message' }), false);
 });

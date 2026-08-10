@@ -447,7 +447,7 @@ function isSandboxPartnerApp(app: Record<string, unknown>) {
 }
 
 function secureWebhookUrl(value: string) {
-  return buildGupshupWebhookUrl(value, config.gupshup.webhookVerifyToken);
+  return buildGupshupWebhookUrl(value);
 }
 
 function normalizeEvents(value: unknown): string[] {
