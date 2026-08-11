@@ -5,7 +5,7 @@ ENV NODE_ENV=production
 COPY packages/contracts ./packages/contracts
 COPY services/service-provider ./services/service-provider
 RUN cd packages/contracts && npm install && npm run build
-RUN cd services/service-provider && npm install && npm run build
+RUN cd services/service-provider && npm install --legacy-peer-deps && npm run build
 
 WORKDIR /app/services/service-provider
 EXPOSE 3004
