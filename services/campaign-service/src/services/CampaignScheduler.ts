@@ -40,6 +40,47 @@ export class CampaignScheduler {
   }
 
   /**
+   * Scan for campaigns stuck in 'QUEUED' state and recover them.
+   */
+  static async processStuckQueuedCampaigns(): Promise<number> {
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+
+    const queuedCampaigns = await Campaign.find({
+      status: 'QUEUED',
+      updatedAt: { $lte: twoMinutesAgo }
+    });
+
+    for (const campaign of queuedCampaigns) {
+      try {
+        console.warn(`[Scheduler] ⚠️ Recovering stuck QUEUED campaign: ${campaign.name} (${campaign._id})`);
+
+        const batchCount = await CampaignBatch.countDocuments({ campaign: campaign._id });
+
+        if (batchCount > 0) {
+          campaign.status = 'RUNNING';
+          campaign.startedAt = campaign.startedAt || new Date();
+          await campaign.save();
+          await (Campaign as ICampaignModel).addAuditEntry(campaign._id.toString(), 'SYSTEM_RECOVERED', {
+            reason: 'Promoted QUEUED campaign to RUNNING as batches already exist'
+          });
+        } else {
+          await CampaignQueueService.enqueue(
+            campaign._id.toString(),
+            campaign.workspace.toString()
+          );
+          await (Campaign as ICampaignModel).addAuditEntry(campaign._id.toString(), 'SYSTEM_RETRY', {
+            reason: 'Re-enqueued stuck QUEUED campaign execution job'
+          });
+        }
+      } catch (err: any) {
+        console.error(`[Scheduler] Failed recovery for QUEUED campaign ${campaign._id}:`, err.message);
+      }
+    }
+
+    return queuedCampaigns.length;
+  }
+
+  /**
    * Scan for campaigns stuck in 'RUNNING' state with no active progress
    */
   static async processStalledCampaigns(): Promise<number> {

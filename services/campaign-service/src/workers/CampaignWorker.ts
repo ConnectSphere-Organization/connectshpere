@@ -1,6 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { Campaign, CampaignBatch, CampaignMessage, ICampaignModel, ICampaignBatchModel, Workspace } from "../models";
-import { JOB_TYPES, CampaignQueueService } from "../lib/campaign-queue";
+import { JOB_TYPES, CampaignQueueService, campaignQueue } from "../lib/campaign-queue";
 import { CampaignService } from "../services/CampaignService";
 import { SegmentService } from "../services/SegmentService";
 import { getSharedRedis } from "../lib/redis";
@@ -46,6 +46,11 @@ export class CampaignWorker {
         }).catch((dlqError) => console.error('[CampaignWorker] DLQ persistence failed:', dlqError.message));
       }
     });
+
+    void campaignQueue.add(JOB_TYPES.CAMPAIGN_CHECK, {}, {
+      repeat: { pattern: '*/1 * * * *' },
+      jobId: 'campaign-maintenance-cron'
+    }).catch((err: any) => console.error('[CampaignWorker] Failed to schedule maintenance cron:', err.message));
   }
 
   async close() {
@@ -411,6 +416,9 @@ export class CampaignWorker {
   private async handleMaintenance(job: Job) {
     console.log('[CampaignWorker] 🛠️ Running periodic maintenance...');
     const { CampaignScheduler } = await import("../services/CampaignScheduler");
-    return await CampaignScheduler.processScheduledCampaigns();
+    const queuedCount = await CampaignScheduler.processStuckQueuedCampaigns();
+    const stalledCount = await CampaignScheduler.processStalledCampaigns();
+    const scheduledCount = await CampaignScheduler.processScheduledCampaigns();
+    return { queuedCount, stalledCount, scheduledCount };
   }
 }
