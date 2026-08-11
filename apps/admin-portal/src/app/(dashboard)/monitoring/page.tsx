@@ -25,7 +25,7 @@ interface ServiceHealth {
   tier?: string;
   status: "up" | "down";
   latencyMs: number | null;
-  database: { name: string; status: string };
+  database: { name: string; label: string; status: string };
   control: ServiceControl;
 }
 
@@ -129,7 +129,7 @@ export default function MonitoringPage() {
                           <div className="flex items-center justify-between border-t pt-3 text-xs">
                             <span className="flex items-center gap-1.5 text-muted-foreground">
                               <Database className="h-3.5 w-3.5" />
-                              Database · <span className="font-medium capitalize text-foreground">{s.database.name}</span>
+                              Database · <span className="font-medium text-foreground">{s.database.label}</span>
                             </span>
                             <Badge variant={s.database.status === "connected" ? "success" : "outline"}>
                               {s.database.status}

@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { requireAdmin, AdminAuthError } from "@/server/auth";
 import { SERVICES } from "@/server/services-config";
 import { getConnection, type DbName } from "@/server/db";
+import { ADMIN_DATABASES } from "@/server/admin-databases";
 import { coreModels } from "@/server/models";
 
 export const runtime = "nodejs";
@@ -14,7 +15,7 @@ interface ServiceHealth {
   tier: string;
   status: "up" | "down";
   latencyMs: number | null;
-  database: { name: DbName; status: string };
+  database: { name: DbName; label: string; status: string };
   control: ServiceControl;
   detail?: unknown;
 }
@@ -109,6 +110,7 @@ export async function GET() {
       })
     );
     const databaseByName = new Map(databases.map((database) => [database.name, database]));
+    const databaseLabelByName = new Map(ADMIN_DATABASES.map((database) => [database.id, database.label]));
 
     const services: ServiceHealth[] = await Promise.all(
       SERVICES.map(async (svc) => {
@@ -119,7 +121,10 @@ export async function GET() {
           tier: svc.tier,
           status: r.ok ? "up" : "down",
           latencyMs: r.latencyMs,
-          database: databaseByName.get(svc.database) || { name: svc.database, status: "unknown" },
+          database: {
+            ...(databaseByName.get(svc.database) || { name: svc.database, status: "unknown" }),
+            label: databaseLabelByName.get(svc.database) || svc.database,
+          },
           control: normalizeControl(serviceControls[svc.id]),
           detail: r.detail,
         } as ServiceHealth;
