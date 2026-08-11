@@ -126,13 +126,14 @@ export default function TemplateRulesPage() {
     try {
       setTestingRuleId(ruleId);
       const response = await testTemplateRule(ruleId, {
-        triggerData: { type: 'message', content: 'test message' }
+        message: 'test message'
       });
+      const matched = Boolean(response.data?.matched);
       setTestResult({
-        success: Boolean(response.success),
+        success: matched,
         message: response.data?.info || response.message || 'Rule test completed'
       });
-      toast.success('Rule test completed');
+      toast[matched ? 'success' : 'info'](matched ? 'Rule matches the test message' : 'Rule does not match the test message');
       setTimeout(() => {
         setTestingRuleId(null);
         setTestResult(null);

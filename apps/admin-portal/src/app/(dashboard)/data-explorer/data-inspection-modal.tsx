@@ -29,11 +29,13 @@ export interface InspectionState {
  */
 export function DataInspectionModal({
   state,
+  database,
   collection,
   onClose,
   onSaved,
 }: {
   state: InspectionState;
+  database: string;
   collection: string;
   onClose: () => void;
   onSaved: () => void;
@@ -76,7 +78,7 @@ export function DataInspectionModal({
     delete update._id;
     setSaving(true);
     try {
-      await apiFetch("/api/admin/ops/data/document", { method: "PATCH", body: { collection, id, update } });
+      await apiFetch("/api/admin/ops/data/document", { method: "PATCH", body: { database, collection, id, update } });
       toast.success("Document updated");
       onSaved();
       onClose();
@@ -95,7 +97,7 @@ export function DataInspectionModal({
             <div>
               <DialogTitle className="flex items-center gap-2">
                 {state.mode === "edit" ? "Edit document" : "Inspect document"}
-                <Badge variant="outline">{collection}</Badge>
+                <Badge variant="outline">{database}.{collection}</Badge>
               </DialogTitle>
               <DialogDescription className="font-mono text-xs">{id}</DialogDescription>
             </div>

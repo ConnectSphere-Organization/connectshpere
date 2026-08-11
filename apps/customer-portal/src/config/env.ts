@@ -59,7 +59,7 @@ export const config = {
   facebookAppId: rawEnv.NEXT_PUBLIC_FACEBOOK_APP_ID || '',
   facebookAuthEnabled: rawEnv.NEXT_PUBLIC_FACEBOOK_AUTH_ENABLED === 'true',
   businessVerificationMandatory: rawEnv.NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY === 'true',
-  appName: rawEnv.NEXT_PUBLIC_APP_NAME || 'ConnectSphare',
+  appName: rawEnv.NEXT_PUBLIC_APP_NAME || 'ConnectSphere',
   optionalFeatures: {
     commerce: rawEnv.NEXT_PUBLIC_FEATURE_COMMERCE !== 'false',
     aiFaq: rawEnv.NEXT_PUBLIC_FEATURE_AI_FAQ !== 'false',

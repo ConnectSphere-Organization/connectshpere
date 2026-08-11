@@ -2,6 +2,7 @@ import Razorpay from 'razorpay';
 import { OrderModel } from '../models/Order';
 import { CommerceSettingsModel } from '../models/CommerceSettings';
 import { Types } from 'mongoose';
+import { decryptCommerceSecret } from './commerce-secret-box';
 
 export class CommercePaymentService {
   /**
@@ -17,7 +18,8 @@ export class CommercePaymentService {
         return null;
       }
 
-      const { keyId, keySecret } = settings.paymentMethods.razorpay;
+      const { keyId } = settings.paymentMethods.razorpay;
+      const keySecret = decryptCommerceSecret(settings.paymentMethods.razorpay.keySecret);
       if (!keyId || !keySecret) {
         console.warn(`[CommercePaymentService] Razorpay keys missing for workspace ${workspaceId}`);
         return null;

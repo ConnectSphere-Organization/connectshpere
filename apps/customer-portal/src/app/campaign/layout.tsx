@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Campaigns | ConnectSphare",
+  title: "Campaigns | ConnectSphere",
   description:
     "Plan, launch, and measure WhatsApp template campaigns.",
 };

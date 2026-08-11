@@ -173,10 +173,10 @@ spec:
                 name: {{ include "enterprise.fullname" . }}-gupshup-secret
             {{- end }}
             {{- if eq .Release.Name "admin-portal" }}
-            # The admin portal reads provider app/subscription state from the
-            # BSP-owned database.
+            # Super Admin direct database reads. These are sourced by the CSI
+            # Key Vault provider and remain server-side inside the portal pod.
             - secretRef:
-                name: {{ include "enterprise.fullname" . }}-bsp-mongodb-secret
+                name: {{ include "enterprise.fullname" . }}-platform-mongodb-secret
             {{- end }}
           {{- end }}
           # Backends do not expose a uniform HTTP health endpoint. A TCP probe

@@ -3,6 +3,9 @@ import mongoose, { Document, Schema, Model, Types } from 'mongoose';
 export interface ICommerceSettings {
   workspaceId: Types.ObjectId;
   enabled: boolean;
+  checkoutBotEnabled?: boolean;
+  checkoutBotTriggerKeyword?: string;
+  catalogEnabled?: boolean;
   currency: string;
   taxPercentage: number;
   paymentMethods: {
@@ -20,6 +23,9 @@ export interface ICommerceSettingsDocument extends ICommerceSettings, Document {
 const CommerceSettingsSchema = new Schema<ICommerceSettingsDocument>({
   workspaceId: { type: Schema.Types.ObjectId, required: true, unique: true, index: true },
   enabled: { type: Boolean, default: false },
+  checkoutBotEnabled: { type: Boolean, default: false },
+  checkoutBotTriggerKeyword: { type: String, default: 'SHOP' },
+  catalogEnabled: { type: Boolean, default: false },
   currency: { type: String, default: 'INR' },
   taxPercentage: { type: Number, default: 0 },
   paymentMethods: {

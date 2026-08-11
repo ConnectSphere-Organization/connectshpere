@@ -22,6 +22,15 @@ import { apiGet } from "@/lib/api/client";
 import { useAdminAuth } from "@/store/admin-auth-store";
 import { DataInspectionModal, type InspectionState } from "./data-inspection-modal";
 
+const DATABASES = [
+  { id: "core", label: "Core" },
+  { id: "billing", label: "Billing" },
+  { id: "campaign", label: "Campaign" },
+  { id: "automation", label: "Automation" },
+  { id: "bsp", label: "BSP / Service Provider" },
+] as const;
+type DatabaseId = (typeof DATABASES)[number]["id"];
+
 interface CollectionsResp {
   data?: string[];
 }
@@ -40,6 +49,7 @@ function cellValue(v: unknown): string {
 export default function DataExplorerPage() {
   const can = useAdminAuth((s) => s.can);
   const editable = can("system");
+  const [database, setDatabase] = useState<DatabaseId>("core");
   const [collection, setCollection] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("{}");
@@ -48,16 +58,16 @@ export default function DataExplorerPage() {
   const [inspection, setInspection] = useState<InspectionState>({ isOpen: false, document: null, mode: "view" });
 
   const collections = useQuery({
-    queryKey: ["collections"],
-    queryFn: () => apiGet<CollectionsResp>("/api/admin/read/data/collections"),
+    queryKey: ["collections", database],
+    queryFn: () => apiGet<CollectionsResp>(`/api/admin/read/data/collections?database=${database}`),
   });
 
   const docs = useQuery({
-    queryKey: ["docs", collection, appliedFilter],
+    queryKey: ["docs", database, collection, appliedFilter],
     enabled: !!collection,
     queryFn: () =>
       apiGet<DocsResp>(
-        `/api/admin/read/data/documents?collection=${encodeURIComponent(collection)}&filter=${encodeURIComponent(appliedFilter)}`
+        `/api/admin/read/data/documents?database=${database}&collection=${encodeURIComponent(collection)}&filter=${encodeURIComponent(appliedFilter)}`
       ),
   });
 
@@ -70,7 +80,7 @@ export default function DataExplorerPage() {
 
   return (
     <>
-      <PageHeader title="Data Explorer" description="Inspect and edit raw MongoDB collections" />
+      <PageHeader title="Data Explorer" description="Inspect and edit raw MongoDB collections across platform databases" />
       <div className="p-6">
         {!can("system") ? (
           <p className="text-sm text-destructive">Data Explorer requires the SUPER_ADMIN role.</p>
@@ -79,6 +89,20 @@ export default function DataExplorerPage() {
             {/* Collections sidebar */}
             <Card className="h-fit">
               <CardContent className="p-3 space-y-2">
+                <label className="text-xs font-medium text-muted-foreground" htmlFor="database">Database</label>
+                <select
+                  id="database"
+                  value={database}
+                  onChange={(event) => {
+                    setDatabase(event.target.value as DatabaseId);
+                    setCollection("");
+                    setFilter("{}");
+                    setAppliedFilter("{}");
+                  }}
+                  className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                >
+                  {DATABASES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                </select>
                 <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search collections…" className="h-9" />
                 <Badge variant="outline">{collectionList.length} collections</Badge>
                 <div className="max-h-[60vh] overflow-y-auto space-y-0.5">
@@ -194,6 +218,7 @@ export default function DataExplorerPage() {
 
       <DataInspectionModal
         state={inspection}
+        database={database}
         collection={collection}
         onClose={() => setInspection({ isOpen: false, document: null, mode: "view" })}
         onSaved={() => docs.refetch()}

@@ -20,10 +20,20 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-const getAuthCallbackUrl = () => {
+const getSafeAuthCallbackUrl = () => {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
-  return params.get('callbackUrl') || params.get('redirectTo');
+  const candidate = params.get('callbackUrl') || params.get('redirectTo');
+  if (!candidate) return null;
+
+  try {
+    const url = new URL(candidate, window.location.origin);
+    return url.origin === window.location.origin && url.pathname.startsWith('/')
+      ? `${url.pathname}${url.search}${url.hash}`
+      : null;
+  } catch {
+    return null;
+  }
 };
 
 export default function LoginPage() {
@@ -57,7 +67,7 @@ export default function LoginPage() {
     let active = true;
     fetchSession(true).then((session) => {
       if (!active || !session?.authenticated) return;
-      const callbackUrl = getAuthCallbackUrl();
+      const callbackUrl = getSafeAuthCallbackUrl();
       router.replace(callbackUrl || session.accessRestriction?.targetPath || session.nextStep || '/dashboard');
     });
 
@@ -68,7 +78,7 @@ export default function LoginPage() {
 
   const handleLoginSuccess = async () => {
     const session = await fetchSession(true);
-    const callbackUrl = getAuthCallbackUrl();
+    const callbackUrl = getSafeAuthCallbackUrl();
     router.replace(callbackUrl || session?.accessRestriction?.targetPath || session?.nextStep || '/dashboard');
   };
 
@@ -98,7 +108,7 @@ export default function LoginPage() {
               <Sparkles className="text-2xl" />
             </div>
             <span className="text-2xl font-bold tracking-tight">
-              {process.env.NEXT_PUBLIC_APP_NAME || 'wApi'}
+              {process.env.NEXT_PUBLIC_APP_NAME || 'ConnectSphere'}
             </span>
           </div>
 

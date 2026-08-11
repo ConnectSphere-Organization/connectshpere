@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Contacts | ConnectSphare",
+  title: "Contacts | ConnectSphere",
   description: "Manage your contact lists, segments, and imports.",
 };
 

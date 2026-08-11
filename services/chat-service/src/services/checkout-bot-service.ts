@@ -33,7 +33,7 @@ export class CheckoutBotService {
       });
 
       if (!cart) {
-        if (!this.isCommerceIntent(lowerText)) return null;
+        if (!this.isCommerceIntent(lowerText, settings)) return null;
         cart = await this.init(workspaceId, contactId, conversationId);
       }
 
@@ -66,7 +66,9 @@ export class CheckoutBotService {
     }
   }
 
-  private static isCommerceIntent(text: string): boolean {
+  private static isCommerceIntent(text: string, settings: any): boolean {
+    const triggerKeyword = String(settings.checkoutBotTriggerKeyword || '').trim().toLowerCase();
+    if (triggerKeyword && text === triggerKeyword) return true;
     return /(buy|shop|order|catalog|product|price|checkout|cart|purchase|available|menu)/i.test(text);
   }
 
@@ -234,9 +236,12 @@ export class CheckoutBotService {
         console.error('[CheckoutBot PaymentLink Error]:', err.message);
       }
 
-      const finalLink = paymentLink || `[TEST_PAYMENT_NODE_${orderResult.orderNumber}]`;
+      if (!paymentLink) {
+        await this.reply(cart, "⚠️ We couldn't generate a secure payment link right now. No payment was taken. Please try again shortly or choose COD.");
+        return { handled: true, state: cart.state };
+      }
 
-      await this.reply(cart, `🔗 *Payment Link Generated*\n\nPlease click the link below to pay ₹${cart.total} via ${activeGateways[0]}:\n\n${finalLink}`);
+      await this.reply(cart, `🔗 *Payment Link Generated*\n\nPlease click the link below to pay ₹${cart.total} via ${activeGateways[0]}:\n\n${paymentLink}`);
       return { handled: true };
     }
 

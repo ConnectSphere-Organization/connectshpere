@@ -81,8 +81,8 @@ export default function CheckoutBotPage() {
     { label: 'Active sessions', value: stats.activeSessions, sub: stats.subtext.sessions, icon: Users, color: "text-purple-500", bg: "bg-purple-500/5" },
   ];
 
-  const handleToggleBot = (enabled: boolean) => {
-    updateSettings.mutate({ ...settingsData, enabled });
+  const handleToggleBot = (checkoutBotEnabled: boolean) => {
+    updateSettings.mutate({ ...settingsData, checkoutBotEnabled });
   };
 
   return (
@@ -94,9 +94,9 @@ export default function CheckoutBotPage() {
              <h1 className="text-4xl font-black tracking-tight text-foreground">Checkout Bot</h1>
              <Badge className={cn(
                "rounded-xl border-none font-black text-[9px] uppercase tracking-widest px-3 py-1",
-               settingsData?.enabled ? "bg-emerald-500 text-white" : "bg-slate-500 text-white"
+               settingsData?.checkoutBotEnabled ? "bg-emerald-500 text-white" : "bg-slate-500 text-white"
              )}>
-                {settingsData?.enabled ? 'Active Engine' : 'Offline'}
+                {settingsData?.checkoutBotEnabled ? 'Active Engine' : 'Offline'}
              </Badge>
           </div>
           <p className="text-muted-foreground text-sm font-medium opacity-60 flex items-center gap-2">
@@ -152,11 +152,11 @@ export default function CheckoutBotPage() {
               </div>
               <div className="flex items-center gap-4 bg-background/50 p-2 px-4 rounded-2xl border border-border/40">
                  <Label className="text-[10px] font-black uppercase tracking-widest cursor-pointer" htmlFor="bot-toggle">
-                    {settingsData?.enabled ? 'Engine Online' : 'Engine Offline'}
+                    {settingsData?.checkoutBotEnabled ? 'Engine Online' : 'Engine Offline'}
                  </Label>
                  <Switch 
                    id="bot-toggle" 
-                   checked={settingsData?.enabled} 
+                   checked={Boolean(settingsData?.checkoutBotEnabled)}
                    onCheckedChange={handleToggleBot}
                    className="data-[state=checked]:bg-emerald-500"
                  />
@@ -172,7 +172,13 @@ export default function CheckoutBotPage() {
                        <Input 
                          placeholder="SHOP, BUY, CATALOG..." 
                          className="h-12 rounded-2xl bg-muted/30 border-border/40 font-black text-lg tracking-widest"
-                         defaultValue="SHOP"
+                         defaultValue={settingsData?.checkoutBotTriggerKeyword || 'SHOP'}
+                         onBlur={(event) => {
+                           const checkoutBotTriggerKeyword = event.currentTarget.value.trim().toUpperCase();
+                           if (checkoutBotTriggerKeyword && checkoutBotTriggerKeyword !== settingsData?.checkoutBotTriggerKeyword) {
+                             updateSettings.mutate({ ...settingsData, checkoutBotTriggerKeyword });
+                           }
+                         }}
                        />
                        <p className="text-[9px] text-muted-foreground font-medium italic opacity-60 px-1">
                           The bot will activate when a customer sends this exact word.
@@ -186,14 +192,14 @@ export default function CheckoutBotPage() {
                              <Label className="text-[10px] font-black uppercase tracking-widest">Inventory Gating</Label>
                              <p className="text-[9px] text-muted-foreground">Hide products with 0 stock.</p>
                           </div>
-                          <Switch defaultChecked />
+                          <Badge variant="outline" className="text-[9px] uppercase tracking-widest">Always enabled</Badge>
                        </div>
                        <div className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl border border-border/40">
                           <div className="space-y-0.5">
                              <Label className="text-[10px] font-black uppercase tracking-widest">Auto-Confirmation</Label>
                              <p className="text-[9px] text-muted-foreground">Mark orders confirmed on intent.</p>
                           </div>
-                          <Switch checked={settingsData?.orderAutoConfirm} />
+                          <Badge variant="outline" className="text-[9px] uppercase tracking-widest">Manual confirmation</Badge>
                        </div>
                     </div>
                  </div>

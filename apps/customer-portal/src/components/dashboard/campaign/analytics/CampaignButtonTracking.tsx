@@ -8,15 +8,7 @@ interface CampaignButtonTrackingProps {
 }
 
 export function CampaignButtonTracking({ campaign }: CampaignButtonTrackingProps) {
-  // In a real app, this would come from the API as button engagement data.
-  // We'll show a high-fidelity placeholder if no data is present, 
-  // or use derived data based on 'replied' count for demo purposes.
-  
-  const buttons = campaign.buttonStats || [
-    { name: "Shop Now", type: "URL", clicks: Math.round(campaign.repliedCount * 0.6) || 0 },
-    { name: "Learn More", type: "URL", clicks: Math.round(campaign.repliedCount * 0.3) || 0 },
-    { name: "Stop Promotions", type: "QUICK_REPLY", clicks: Math.round(campaign.repliedCount * 0.1) || 0 },
-  ].filter(b => campaign.repliedCount > 0);
+  const buttons = Array.isArray(campaign.buttonStats) ? campaign.buttonStats : [];
 
   if (buttons.length === 0) {
     return (
@@ -26,7 +18,7 @@ export function CampaignButtonTracking({ campaign }: CampaignButtonTrackingProps
         </div>
         <div className="flex flex-col items-center justify-center py-12 text-center opacity-40 group-hover:opacity-100 transition-opacity">
             <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">No interactive buttons found in template</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Button-click analytics are not available for this campaign</p>
         </div>
       </div>
     );

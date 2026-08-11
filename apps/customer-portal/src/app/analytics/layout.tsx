@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Analytics | ConnectSphare",
+  title: "Analytics | ConnectSphere",
   description: "Campaign, inbox, and account performance metrics.",
 };
 

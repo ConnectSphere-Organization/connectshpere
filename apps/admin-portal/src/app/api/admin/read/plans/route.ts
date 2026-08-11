@@ -12,10 +12,18 @@ export async function GET() {
     await requireAdmin("read");
     const { Plan } = await coreModels();
     const items = await Plan.find({}).sort({ name: 1 }).lean();
-    // Backfill legacy Admin-created plans into the catalogue served to
-    // customers. Subsequent Admin CRUD calls keep this replica in sync.
-    await syncPlanCatalogToBilling();
-    return NextResponse.json({ items });
+    // Core is the authoritative catalogue for the Admin UI. Billing is a
+    // replica used by checkout; a temporary billing connection failure must
+    // never hide an otherwise valid plan catalogue from Super Admin.
+    let billingSynchronized = true;
+    try {
+      await syncPlanCatalogToBilling();
+    } catch (syncError) {
+      billingSynchronized = false;
+      console.warn("[admin/read/plans] Billing catalogue sync deferred:", syncError instanceof Error ? syncError.message : syncError);
+    }
+
+    return NextResponse.json({ items, billingSynchronized });
   } catch (err) {
     if (err instanceof AdminAuthError) {
       return NextResponse.json({ message: err.message }, { status: err.status });

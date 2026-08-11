@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Automation | ConnectSphare",
+  title: "Automation | ConnectSphere",
   description:
     "Build no-code WhatsApp workflows, answer bots, and AI intents.",
 };

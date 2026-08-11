@@ -1,8 +1,8 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Sign in | ConnectSphare",
-  description: "Access your ConnectSphare workspace.",
+  title: "Sign in | ConnectSphere",
+  description: "Access your ConnectSphere workspace.",
   robots: { index: false, follow: false },
 };
 

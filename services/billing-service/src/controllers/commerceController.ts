@@ -4,6 +4,60 @@ import { CommercePaymentService } from '../services/CommercePaymentService';
 import { OrderModel } from '../models/Order';
 import { AuthRequest } from '../middleware/auth';
 import { ProductModel } from '../models/Product';
+import { CommerceSettingsModel } from '../models/CommerceSettings';
+import { encryptCommerceSecret } from '../services/commerce-secret-box';
+
+const SENSITIVE_COMMERCE_FIELDS = new Set([
+  'keySecret', 'secretKey', 'webhookSecret', 'clientSecret', 'apiKey',
+]);
+
+function copyAndTransformSecrets(value: any, transform: (secret: string) => string | undefined): any {
+  if (Array.isArray(value)) return value.map((item) => copyAndTransformSecrets(item, transform));
+  if (!value || typeof value !== 'object') return value;
+
+  return Object.fromEntries(Object.entries(value).flatMap(([key, child]) => {
+    if (SENSITIVE_COMMERCE_FIELDS.has(key)) {
+      if (typeof child !== 'string' || !child) return [];
+      const transformed = transform(child);
+      return transformed ? [[key, transformed]] : [];
+    }
+    return [[key, copyAndTransformSecrets(child, transform)]];
+  }));
+}
+
+/** Keeps private credentials out of every customer-facing settings response. */
+export function redactCommerceSettings(settings: Record<string, any>) {
+  return copyAndTransformSecrets(settings, () => undefined);
+}
+
+function mergeCommerceSettings(previous: Record<string, any>, incoming: Record<string, any>): Record<string, any> {
+  const merged = { ...previous, ...incoming };
+  const previousMethods = previous.paymentMethods || {};
+  const incomingMethods = incoming.paymentMethods || {};
+  merged.paymentMethods = { ...previousMethods, ...incomingMethods };
+
+  for (const provider of Object.keys(merged.paymentMethods)) {
+    const oldProvider = previousMethods[provider] || {};
+    const newProvider = incomingMethods[provider] || {};
+    const nextProvider = { ...oldProvider, ...newProvider };
+    for (const field of SENSITIVE_COMMERCE_FIELDS) {
+      if (newProvider[field] === '' || newProvider[field] === undefined || newProvider[field] === null) {
+        if (oldProvider[field]) nextProvider[field] = oldProvider[field];
+      }
+    }
+    merged.paymentMethods[provider] = nextProvider;
+  }
+  return merged;
+}
+
+function encryptCommerceSettings(settings: Record<string, any>) {
+  return copyAndTransformSecrets(settings, (secret) => encryptCommerceSecret(secret));
+}
+
+function withoutPersistenceMetadata(settings: Record<string, any>): Record<string, any> {
+  const { _id, __v, workspaceId, createdAt, updatedAt, ...values } = settings;
+  return values;
+}
 
 export const commerceController = {
   /**
@@ -416,16 +470,18 @@ export const commerceController = {
         workspace: new mongoose.Types.ObjectId(String(workspaceId))
       });
 
-      const cs = (business?.commerceSettings || {}) as Record<string, any>;
+      const persistedSettings = await CommerceSettingsModel.findOne({ workspaceId: new mongoose.Types.ObjectId(String(workspaceId)) }).lean();
+      const cs = (persistedSettings || business?.commerceSettings || {}) as Record<string, any>;
+      const safeSettings = redactCommerceSettings(cs);
 
       res.json({
         success: true,
         data: {
-          currency: cs.currency || 'INR',
-          checkoutBotEnabled: !!cs.checkoutBotEnabled,
-          razorpayEnabled: !!business?.razorpayKeyId,
-          catalogEnabled: !!cs.catalogEnabled,
-          ...cs
+          ...safeSettings,
+          currency: safeSettings.currency || 'INR',
+          checkoutBotEnabled: !!safeSettings.checkoutBotEnabled,
+          razorpayEnabled: Boolean(safeSettings.paymentMethods?.razorpay?.enabled && safeSettings.paymentMethods?.razorpay?.keyId),
+          catalogEnabled: !!safeSettings.catalogEnabled,
         }
       });
     } catch (error: any) {
@@ -452,13 +508,15 @@ export const commerceController = {
       const query = { workspace: new mongoose.Types.ObjectId(String(workspaceId)) };
       const business = await db.collection('businesses').findOne(query);
 
-      const prev = (business?.commerceSettings || {}) as Record<string, any>;
+      const persistedSettings = await CommerceSettingsModel.findOne({ workspaceId: new mongoose.Types.ObjectId(String(workspaceId)) }).lean();
+      const prev = withoutPersistenceMetadata((persistedSettings || business?.commerceSettings || {}) as Record<string, any>);
       const incoming = req.body || {};
-      const newSettings = { ...prev, ...incoming };
+      const newSettings = mergeCommerceSettings(prev, incoming);
+      const encryptedSettings = encryptCommerceSettings(newSettings);
 
       const updateData: any = {
         $set: {
-          commerceSettings: newSettings
+          commerceSettings: encryptedSettings
         }
       };
 
@@ -474,19 +532,27 @@ export const commerceController = {
           owner: userId ? new mongoose.Types.ObjectId(String(userId)) : undefined,
           name: 'Business',
           address: {},
-          commerceSettings: newSettings,
+          commerceSettings: encryptedSettings,
           razorpayKeyId: incoming.razorpayKeyId
         });
       }
 
+      await CommerceSettingsModel.findOneAndUpdate(
+        { workspaceId: new mongoose.Types.ObjectId(String(workspaceId)) },
+        { $set: { ...encryptedSettings, workspaceId: new mongoose.Types.ObjectId(String(workspaceId)), updatedAt: new Date() } },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+
+      const safeSettings = redactCommerceSettings(encryptedSettings);
+
       res.json({
         success: true,
         data: {
-          currency: newSettings.currency || 'INR',
-          checkoutBotEnabled: !!newSettings.checkoutBotEnabled,
-          razorpayEnabled: !!incoming.razorpayKeyId || !!business?.razorpayKeyId,
-          catalogEnabled: !!newSettings.catalogEnabled,
-          ...newSettings
+          ...safeSettings,
+          currency: safeSettings.currency || 'INR',
+          checkoutBotEnabled: !!safeSettings.checkoutBotEnabled,
+          razorpayEnabled: Boolean(safeSettings.paymentMethods?.razorpay?.enabled && safeSettings.paymentMethods?.razorpay?.keyId),
+          catalogEnabled: !!safeSettings.catalogEnabled,
         }
       });
     } catch (error: any) {
@@ -503,9 +569,9 @@ export const commerceController = {
         activeSessions: 0,
         subtext: { 
           orders: 'No data', 
-          revenue: 'Real-time', 
-          abandonment: 'Stable', 
-          sessions: 'Monitoring' 
+          revenue: 'No data',
+          abandonment: 'No data',
+          sessions: 'No active sessions'
         }
       };
       res.json({ success: true, data: stats });

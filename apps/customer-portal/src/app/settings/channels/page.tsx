@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 
 const CHANNELS = [
   { id: "whatsapp", name: "WhatsApp", description: "Primary support and broadcast channel.", icon: Smartphone, status: "connected", color: "text-emerald-600", managePath: "/settings/whatsapp-profile", connectPath: "/onboarding" },
-  { id: "website", name: "Website Chat", description: "Embed a lightweight website entry point.", icon: Globe, status: "coming_soon", color: "text-sky-600", managePath: "/widget", connectPath: "/widget" },
+  { id: "website", name: "Website Chat", description: "Embed a lightweight website entry point.", icon: Globe, status: "not_connected", color: "text-sky-600", managePath: "/widget", connectPath: "/widget" },
   { id: "manual", name: "Manual Inbox", description: "Create contacts and follow up by hand.", icon: MessageSquare, status: "connected", color: "text-violet-600", managePath: "/inbox", connectPath: "/inbox" },
 ];
 

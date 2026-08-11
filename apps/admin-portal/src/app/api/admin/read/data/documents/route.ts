@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, AdminAuthError } from "@/server/auth";
-import { coreModels } from "@/server/models";
+import { getConnection } from "@/server/db";
+import { parseAdminDatabase } from "@/server/admin-databases";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,8 @@ export async function GET(req: NextRequest) {
   try {
     await requireAdmin("system");
     const { searchParams } = new URL(req.url);
+    const database = parseAdminDatabase(searchParams.get("database"));
+    if (!database) return NextResponse.json({ message: "Valid database is required" }, { status: 400 });
     const collection = (searchParams.get("collection") || "").trim();
     if (!collection) {
       return NextResponse.json({ message: "collection is required" }, { status: 400 });
@@ -35,9 +38,9 @@ export async function GET(req: NextRequest) {
     const limit = Math.min(Math.max(Number(searchParams.get("limit")) || 20, 1), 100);
     const skip = Math.max(Number(searchParams.get("skip")) || 0, 0);
 
-    const { Workspace } = await coreModels();
-    const db = Workspace.db.db;
-    if (!db) throw new Error("core DB unavailable");
+    const connection = await getConnection(database);
+    const db = connection.db;
+    if (!db) throw new Error(`${database} DB unavailable`);
     const coll = db.collection(collection);
 
     const [docs, total] = await Promise.all([
@@ -45,7 +48,7 @@ export async function GET(req: NextRequest) {
       coll.countDocuments(filter),
     ]);
 
-    return NextResponse.json({ success: true, data: docs, pagination: { total, limit, skip } });
+    return NextResponse.json({ success: true, database, data: docs, pagination: { total, limit, skip } });
   } catch (err) {
     if (err instanceof AdminAuthError) {
       return NextResponse.json({ message: err.message }, { status: err.status });

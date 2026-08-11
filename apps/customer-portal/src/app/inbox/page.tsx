@@ -238,6 +238,7 @@ export default function InboxPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [channelFilter, setChannelFilter] = useState('all');
   const [isDetailsOpen, setIsDetailsOpen] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
   const workspaceId = React.useMemo(
     () => toEntityId(workspace?._id || workspace?.id || user?.workspace?._id || user?.workspace),
     [workspace, user]
@@ -245,6 +246,13 @@ export default function InboxPage() {
   const currentUserId = React.useMemo(() => toEntityId(user?._id || user?.id), [user]);
   const seenMessageEventsRef = React.useRef(new Map<string, number>());
   const seenStatusEventsRef = React.useRef(new Map<string, number>());
+
+  useEffect(() => {
+    const updateCurrentTime = () => setCurrentTime(Date.now());
+    updateCurrentTime();
+    const timer = window.setInterval(updateCurrentTime, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // 1. Fetch Conversations
   const { data: convsData, isLoading: isConvsLoading } = useQuery({
@@ -750,7 +758,7 @@ export default function InboxPage() {
   const isSelectedWhatsAppSessionExpired = Boolean(
     selectedConversation?.channel === 'whatsapp' &&
     selectedConversation?.windowExpiresAt &&
-    new Date(selectedConversation.windowExpiresAt).getTime() <= Date.now()
+    currentTime > 0 && new Date(selectedConversation.windowExpiresAt).getTime() <= currentTime
   );
 
   const notifySessionExpired = () => {

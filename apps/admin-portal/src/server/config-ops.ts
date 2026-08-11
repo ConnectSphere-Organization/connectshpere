@@ -1,7 +1,7 @@
 import "server-only";
 import { Types } from "mongoose";
 import { coreModels } from "./models";
-import { getConnection } from "./db";
+import { getConnection, type DbName } from "./db";
 
 /**
  * Self-contained config/plan/settings writes — direct Mongo, no gateway.
@@ -202,11 +202,10 @@ export async function saveWebhookPolicy(input: Record<string, unknown>) {
 
 /* ── Data explorer single-document update ─────────────────────────────── */
 
-export async function updateDocument(collection: string, id: string, update: Record<string, unknown>) {
-  const { Workspace } = await coreModels();
-  const conn = Workspace.db; // core connection
+export async function updateDocument(database: DbName, collection: string, id: string, update: Record<string, unknown>) {
+  const conn = await getConnection(database);
   const db = conn.db;
-  if (!db) throw new Error("core DB unavailable");
+  if (!db) throw new Error(`${database} DB unavailable`);
 
   // Guard against dangerous operators in the update payload.
   const json = JSON.stringify(update);

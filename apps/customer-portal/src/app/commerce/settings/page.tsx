@@ -277,6 +277,7 @@ export default function CommerceSettingsPage() {
                                               {showKeys['rzp'] ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
                                            </button>
                                         </div>
+                                        <p className="text-[9px] text-muted-foreground">Saved secrets are hidden. Enter a value only to replace it.</p>
                                      </div>
                                   </div>
                                </div>
@@ -320,6 +321,7 @@ export default function CommerceSettingsPage() {
                                               {showKeys['stripe'] ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
                                            </button>
                                         </div>
+                                        <p className="text-[9px] text-muted-foreground">Saved secrets are hidden. Enter a value only to replace it.</p>
                                      </div>
                                   </div>
                                </div>

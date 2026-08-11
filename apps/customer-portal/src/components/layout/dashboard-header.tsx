@@ -132,7 +132,7 @@ export function DashboardHeader() {
         <Breadcrumb className="hidden md:flex">
           <BreadcrumbList>
             {/* <BreadcrumbItem>
-            <BreadcrumbLink href="/" className="text-muted-foreground/60 hover:text-primary transition-colors">ConnectSphare</BreadcrumbLink>
+            <BreadcrumbLink href="/" className="text-muted-foreground/60 hover:text-primary transition-colors">ConnectSphere</BreadcrumbLink>
             </BreadcrumbItem> */}
             {breadcrumbs.map((crumb, i) => (
               <React.Fragment key={crumb.url}>

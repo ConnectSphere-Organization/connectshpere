@@ -10,8 +10,7 @@ import {
   getWorkspaceAnalytics,
   getTopPerformingTemplates,
   getLowPerformingTemplates,
-  getTemplateBehavioralInsights,
-  exportAnalyticsReport
+  getTemplateBehavioralInsights
 } from '@/lib/api/templates';
 
 import TemplateAnalyticsChart from '@/components/dashboard/templates/template-analytics-chart';
@@ -56,13 +55,8 @@ export default function TemplateAnalyticsPage() {
     loadAnalytics();
   }, [dateRange]);
 
-  const handleExport = async (format: string) => {
-    try {
-      await exportAnalyticsReport(format);
-      toast.success(`Analytics exported as ${format.toUpperCase()}`);
-    } catch (error) {
-      toast.error('Failed to export analytics');
-    }
+  const handleExport = () => {
+    toast.info('Analytics export is not available yet. No report was created.');
   };
 
   if (loading) {
@@ -79,9 +73,9 @@ export default function TemplateAnalyticsPage() {
   // Prepare chart data
   const messagesTrendData = analytics?.messagesTrend || [];
   const qualityDistributionData = [
-    { name: 'Green', value: analytics?.summary?.qualityGreen || 0 },
-    { name: 'Yellow', value: analytics?.summary?.qualityYellow || 0 },
-    { name: 'Red', value: analytics?.summary?.qualityRed || 0 }
+    { name: 'Green', value: analytics?.qualityBreakdown?.GREEN || 0 },
+    { name: 'Yellow', value: analytics?.qualityBreakdown?.YELLOW || 0 },
+    { name: 'Red', value: analytics?.qualityBreakdown?.RED || 0 }
   ];
 
   return (
@@ -99,7 +93,7 @@ export default function TemplateAnalyticsPage() {
             </div>
           </div>
           <button
-            onClick={() => handleExport('json')}
+            onClick={handleExport}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Download size={18} />
@@ -192,16 +186,9 @@ export default function TemplateAnalyticsPage() {
 
           <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
             <h3 className="font-semibold text-slate-900 dark:text-white mb-4">Quick Recommendation</h3>
-            <ul className="space-y-4">
-              <li className="flex gap-3 text-sm text-slate-600 dark:text-slate-400">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                <span>Templates with "MARKETING" category perform 24% better on {behavioralData?.peakDay || 'weekdays'}.</span>
-              </li>
-              <li className="flex gap-3 text-sm text-slate-600 dark:text-slate-400">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 shrink-0" />
-                <span>Response rate drops significantly after 8 PM local time.</span>
-              </li>
-            </ul>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Recommendations will appear when enough message engagement data is available.
+            </p>
           </div>
         </div>
       </div>

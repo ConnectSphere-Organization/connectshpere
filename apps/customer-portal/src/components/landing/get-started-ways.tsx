@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 
 export default function GetStartedWays({ isDark }: { isDark: boolean }) {
   const router = useRouter();
-  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'wApi';
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'ConnectSphere';
 
   const cards = [
     {
       title: 'Flexible Payment Options',
       desc: 'Monthly or annual plans available. Choose what works best for your business needs.',
       btn: 'Explore Plans →',
+      href: '/billing',
       svg: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
@@ -23,6 +24,7 @@ export default function GetStartedWays({ isDark }: { isDark: boolean }) {
       title: `Setup in Minutes`,
       desc: `Get started quickly with our streamlined onboarding process. Save your time with ${appName}.`,
       btn: 'Get Started →',
+      href: '/auth/register',
       svg: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />
@@ -34,6 +36,7 @@ export default function GetStartedWays({ isDark }: { isDark: boolean }) {
       title: '1-on-1 Expert Support',
       desc: 'Get personalized guidance from our WhatsApp Business specialists to maximize results.',
       btn: 'Talk to Expert →',
+      href: '/support',
       svg: (
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -100,7 +103,7 @@ export default function GetStartedWays({ isDark }: { isDark: boolean }) {
                 {card.desc}
               </p>
               <button
-                onClick={() => router.push('/auth/register')}
+                onClick={() => router.push(card.href)}
                 className="px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 text-white bg-gradient-to-r from-primary to-primary/80 shadow-premium hover:shadow-xl"
               >
                 {card.btn}

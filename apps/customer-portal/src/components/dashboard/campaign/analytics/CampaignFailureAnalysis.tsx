@@ -15,16 +15,9 @@ interface CampaignFailureAnalysisProps {
 }
 
 export function CampaignFailureAnalysis({ campaign }: CampaignFailureAnalysisProps) {
-  // In a real app, this would come from the API. 
-  // We'll derive some common failure reasons if the API doesn't provide them,
-  // or show a premium "No failures detected" state.
-  
-  const failureReasons: FailureReason[] = campaign.failureBreakdown || [
-    { reason: "Invalid Phone Number", count: Math.round(campaign.failedCount * 0.45) || 0, color: "bg-rose-500" },
-    { reason: "User Blocked / Opted Out", count: Math.round(campaign.failedCount * 0.30) || 0, color: "bg-amber-500" },
-    { reason: "Spam Rate Limit Hit", count: Math.round(campaign.failedCount * 0.15) || 0, color: "bg-slate-500" },
-    { reason: "Others", count: Math.round(campaign.failedCount * 0.10) || 0, color: "bg-slate-300" },
-  ].filter(f => campaign.failedCount > 0);
+  const failureReasons: FailureReason[] = Array.isArray(campaign.failureBreakdown)
+    ? campaign.failureBreakdown
+    : [];
 
   if (campaign.failedCount === 0 && campaign.status === 'COMPLETED') {
     return (
@@ -43,6 +36,15 @@ export function CampaignFailureAnalysis({ campaign }: CampaignFailureAnalysisPro
                 Your campaign reached 100% of the targetable audience without any technical rejects.
             </p>
         </div>
+      </div>
+    );
+  }
+
+  if (!failureReasons.length) {
+    return (
+      <div className="bg-background rounded-[40px] p-8 border border-border/50 shadow-premium-sm">
+        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Failure Analysis</h2>
+        <p className="mt-6 text-sm text-muted-foreground">Reason-level failure data is not available for this campaign.</p>
       </div>
     );
   }
