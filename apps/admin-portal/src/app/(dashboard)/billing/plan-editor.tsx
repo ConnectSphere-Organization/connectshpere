@@ -253,7 +253,7 @@ export function PlanEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl h-[85dvh] max-h-[720px] p-0 overflow-hidden gap-0">
+      <DialogContent className="!block sm:max-w-4xl h-[85dvh] max-h-[720px] p-0 overflow-hidden gap-0">
         <div className="flex h-full min-h-0">
           {/* Wizard rail */}
           <aside className="w-56 shrink-0 overflow-y-auto border-r border-border bg-muted/30 p-5 flex flex-col gap-6">
@@ -326,8 +326,9 @@ export function PlanEditorDialog({
             </DialogHeader>
 
             <div
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+              className="h-0 min-h-0 flex-1 overflow-y-scroll overscroll-contain [scrollbar-gutter:stable]"
               data-testid="plan-editor-content"
+              aria-label="Plan editor content"
               tabIndex={0}
             >
               <div className="p-6">
