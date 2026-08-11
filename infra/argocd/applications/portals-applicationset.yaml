@@ -7,10 +7,9 @@ spec:
   generators:
     - list:
         elements:
-          - service: customer-portal
-            ingressClass: nginx-customer
-            ingressHost: connectsphere-customer-vivek.eastus2.cloudapp.azure.com
-            containerPort: '3000'
+          # customer-portal is owned by saas-microservices. Keeping it out of
+          # this ApplicationSet prevents competing controllers from blocking
+          # reconciliation of the admin portal.
           - service: admin-portal
             ingressClass: nginx
             ingressHost: connectsphere-admin-vivek.eastus2.cloudapp.azure.com
