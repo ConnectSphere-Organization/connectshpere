@@ -27,6 +27,11 @@ spec:
         helm:
           valueFiles:
             - values.yaml
+            # Each portal gets an immutable image tag written by CI after the
+            # image has been built and pushed.  Missing files are intentional
+            # during the initial migration from the mutable `latest` tag.
+            - environments/production/{{service}}-values.yaml
+          ignoreMissingValueFiles: true
           parameters:
             - name: azureKeyVault.secretName
               value: mongodb-uri-{{service}}

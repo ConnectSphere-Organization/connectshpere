@@ -100,6 +100,11 @@ spec:
         helm:
           valueFiles:
             - values.yaml
+            # CI records the image digest tag for each service here.  This
+            # creates a Deployment manifest change for every release, which
+            # lets Argo CD trigger Kubernetes' normal rolling update.
+            - environments/production/{{service}}-values.yaml
+          ignoreMissingValueFiles: true
           parameters:
             - name: "azureKeyVault.secretName"
               value: "mongodb-uri-{{service}}"

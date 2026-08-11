@@ -9,6 +9,12 @@ on:
       - 'apps/**'
       - '.github/workflows/**'
 
+# Preserve release order when two pushes land close together.  The second
+# commit is deployed only after the first release has written its GitOps state.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 permissions:
   contents: write
   id-token: write
@@ -75,3 +81,51 @@ jobs:
             docker tag ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${IMAGE_TAG} ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest
             docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ matrix.service }}:latest
           fi
+
+  update-gitops-image-tags:
+    name: Record immutable production image tags
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    # A failed image build must never advance the GitOps deployment tag.
+    if: ${{ needs.build-and-deploy.result == 'success' }}
+    steps:
+      - name: Checkout deployment configuration
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Write production image tags
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          services=(
+            api-gateway auth-service automation-service billing-service
+            campaign-service chat-service contact-service service-provider
+            webhook-ingestor websocket-gateway customer-portal admin-portal
+          )
+          mkdir -p infra/helm/environments/production
+          for service in "${services[@]}"; do
+            printf 'image:\n  tag: "%s"\n' "$IMAGE_TAG" > "infra/helm/environments/production/${service}-values.yaml"
+          done
+
+      - name: Commit deployment state
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          if git diff --quiet -- infra/helm/environments/production; then
+            exit 0
+          fi
+          git config user.name "connectsphere-ci"
+          git config user.email "connectsphere-ci@users.noreply.github.com"
+          git add infra/helm/environments/production
+          git commit -m "chore(gitops): deploy ${IMAGE_TAG}"
+          # A developer may push while the images are building. Rebase and
+          # retry so the deployment-state commit never gets lost.
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep 5
+          done
+          exit 1
