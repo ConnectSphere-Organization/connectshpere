@@ -21,7 +21,7 @@ test('sends the required correlation fields and returns the provider message ID'
 
   const result = await dispatchBspMessage({
     bspUrl: 'http://service-provider',
-    internalServiceSecret: 'test-secret',
+    internalServiceSecret: process.env.INTERNAL_SERVICE_SECRET || 'dummy-test-key-for-unit-tests-only',
     workspaceId: 'workspace-1',
     conversationId: 'conversation-1',
     contactId: 'contact-1',
@@ -48,7 +48,7 @@ test('does not report success when service-provider rejects the dispatch', async
   await assert.rejects(
     dispatchBspMessage({
       bspUrl: 'http://service-provider',
-      internalServiceSecret: 'test-secret',
+      internalServiceSecret: process.env.INTERNAL_SERVICE_SECRET || 'dummy-test-key-for-unit-tests-only',
       workspaceId: 'workspace-1',
       appId: 'app-1',
       to: '911234567890',
@@ -68,7 +68,7 @@ test('rejects a malformed success response without a provider message ID', async
   await assert.rejects(
     dispatchBspMessage({
       bspUrl: 'http://service-provider',
-      internalServiceSecret: 'test-secret',
+      internalServiceSecret: process.env.INTERNAL_SERVICE_SECRET || 'dummy-test-key-for-unit-tests-only',
       workspaceId: 'workspace-1',
       appId: 'app-1',
       to: '911234567890',

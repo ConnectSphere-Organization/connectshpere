@@ -24,4 +24,4 @@ spec:
                 requests:
                   storage: 50Gi
     grafana:
-      adminPassword: "admin-change-me-in-keyvault"
+      adminPassword: "${GRAFANA_ADMIN_PASSWORD}"

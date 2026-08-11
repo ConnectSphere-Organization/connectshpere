@@ -217,7 +217,7 @@ export class GupshupClientService {
       let freshTokenRecord: any = null;
 
       const fetchTokenFromGupshup = async (pToken: string) => {
-        const url = `/partner/app/${appId}/token`;
+        const url = `/partner/app/${encodeURIComponent(appId)}/token`;
         const normalized = pToken.replace(/^Bearer\s+/i, '').trim();
 
         // Gupshup header variations for compatibility
@@ -448,7 +448,7 @@ export class GupshupClientService {
         }
 
         return this.partnerClient.get(
-          `/partner/app/${appId}/onboarding/embed/link?${query.toString()}`,
+          `/partner/app/${encodeURIComponent(appId)}/onboarding/embed/link?${query.toString()}`,
           {
             headers: {
               token: token,
@@ -527,7 +527,7 @@ export class GupshupClientService {
 
     const appToken = await this.resolveAppToken(input.appId);
     const rawApp = this.normalizeToken(appToken);
-    const url = `/partner/app/${input.appId}/v3/message`;
+    const url = `/partner/app/${encodeURIComponent(input.appId)}/v3/message`;
     const headerVariants = [
       { token: rawApp, Accept: 'application/json' },
       { Authorization: rawApp, Accept: 'application/json' },
@@ -581,14 +581,14 @@ export class GupshupClientService {
 
     return this.withDualAuth(input.appId, async (headers) => {
       const attempts = [
-        { url: `/partner/app/${input.appId}/v3/message/action`, body: payload },
-        { url: `/partner/app/${input.appId}/v3/message`, body: payload },
+        { url: `/partner/app/${encodeURIComponent(input.appId)}/v3/message/action`, body: payload },
+        { url: `/partner/app/${encodeURIComponent(input.appId)}/v3/message`, body: payload },
         {
-          url: `/partner/app/${input.appId}/v1/event`,
+          url: `/partner/app/${encodeURIComponent(input.appId)}/v1/event`,
           body: { type: 'message', message: { id: input.messageId, status: 'read' } },
         },
         {
-          url: `/partner/app/${input.appId}/v1/event`,
+          url: `/partner/app/${encodeURIComponent(input.appId)}/v1/event`,
           body: { type: 'read', message: { id: input.messageId } },
         },
       ];
@@ -622,7 +622,7 @@ export class GupshupClientService {
     const appToken = await this.resolveAppToken(input.appId);
     const rawApp = this.normalizeToken(appToken);
     const statusQuery = input.status ? `?status=${encodeURIComponent(input.status)}` : '';
-    const url = `/partner/app/${input.appId}/templates${statusQuery}`;
+    const url = `/partner/app/${encodeURIComponent(input.appId)}/templates${statusQuery}`;
 
     const headerVariants = [
       { token: rawApp, Accept: 'application/json' },
@@ -651,7 +651,7 @@ export class GupshupClientService {
   async submitTemplate(input: { appId: string; template: Record<string, unknown> }) {
     const appToken = await this.resolveAppToken(input.appId);
     const rawApp = this.normalizeToken(appToken);
-    const url = `/partner/app/${input.appId}/templates`;
+    const url = `/partner/app/${encodeURIComponent(input.appId)}/templates`;
     const headerVariants = [
       { token: rawApp, Accept: 'application/json' },
       { Authorization: rawApp, Accept: 'application/json' },
@@ -834,7 +834,7 @@ export class GupshupClientService {
     const raw = this.normalizeToken(appToken);
 
     const response = await this.partnerClient.post(
-      `/partner/app/${input.appId}/register/phone`,
+      `/partner/app/${encodeURIComponent(input.appId)}/register/phone`,
       {
         phoneNumber: input.phoneNumber,
         region: input.region || 'IN',
@@ -852,7 +852,7 @@ export class GupshupClientService {
   async listSubscriptions(appId: string) {
     return this.withDualAuth(appId, async (headers) => {
       const response = await this.withRateLimitRetry(() =>
-        this.partnerClient.get(`/partner/app/${appId}/subscription`, {
+        this.partnerClient.get(`/partner/app/${encodeURIComponent(appId)}/subscription`, {
           headers,
         }),
       );
@@ -966,7 +966,7 @@ export class GupshupClientService {
       const createSubscription = async (tag: string) => {
         const params = buildParams(tag);
         const response = await this.partnerClient.post(
-          `/partner/app/${input.appId}/subscription?v=v3`,
+          `/partner/app/${encodeURIComponent(input.appId)}/subscription?v=v3`,
           params.toString(),
           {
             headers: {
@@ -1066,7 +1066,7 @@ export class GupshupClientService {
       params.append('showOnUI', 'true');
 
       const response = await this.partnerClient.put(
-        `/partner/app/${input.appId}/subscription/${input.subscriptionId}?v=v3`,
+        `/partner/app/${encodeURIComponent(input.appId)}/subscription/${encodeURIComponent(input.subscriptionId)}?v=v3`,
         params.toString(),
         {
           headers: {
@@ -1086,7 +1086,7 @@ export class GupshupClientService {
   async deleteSubscription(appId: string, subscriptionId: string) {
     return this.withDualAuth(appId, async (headers) => {
       const response = await this.partnerClient.delete(
-        `/partner/app/${appId}/subscription/${subscriptionId}`,
+        `/partner/app/${encodeURIComponent(appId)}/subscription/${encodeURIComponent(subscriptionId)}`,
         { headers }
       );
       return response.data;
@@ -1097,7 +1097,7 @@ export class GupshupClientService {
     return this.withPartnerAuth(async (token) => {
       const raw = this.normalizeToken(token);
       const response = await this.partnerClient.post(
-        `/partner/app/${appId}/oboToEmbed/whitelist`,
+        `/partner/app/${encodeURIComponent(appId)}/oboToEmbed/whitelist`,
         { wabaId },
         {
           headers: {
@@ -1114,7 +1114,7 @@ export class GupshupClientService {
     return this.withPartnerAuth(async (token) => {
       const raw = this.normalizeToken(token);
       const response = await this.partnerClient.get(
-        `/partner/app/${appId}/oboToEmbed/verify`,
+        `/partner/app/${encodeURIComponent(appId)}/oboToEmbed/verify`,
         {
           headers: {
             Authorization: `Bearer ${raw}`,
@@ -1129,7 +1129,7 @@ export class GupshupClientService {
   async getWabaInfo(appId: string) {
     return this.withDualAuth(appId, async (headers) => {
       const response = await this.partnerClient.get(
-        `/partner/app/${appId}/wabaInfo`,
+        `/partner/app/${encodeURIComponent(appId)}/wabaInfo`,
         { headers }
       );
       return response.data;
@@ -1140,7 +1140,7 @@ export class GupshupClientService {
     return this.withPartnerAuth(async (token) => {
       const raw = this.normalizeToken(token);
       const response = await this.partnerClient.get(
-        `/partner/app/${appId}/health`,
+        `/partner/app/${encodeURIComponent(appId)}/health`,
         {
           headers: {
             Authorization: `Bearer ${raw}`,
@@ -1156,7 +1156,7 @@ export class GupshupClientService {
     return this.withPartnerAuth(async (token) => {
       const raw = this.normalizeToken(token);
       const response = await this.partnerClient.get(
-        `/partner/app/${appId}/wallet/balance`,
+        `/partner/app/${encodeURIComponent(appId)}/wallet/balance`,
         {
           headers: {
             Authorization: `Bearer ${raw}`,
@@ -1172,7 +1172,7 @@ export class GupshupClientService {
     return this.withPartnerAuth(async (token) => {
       const raw = this.normalizeToken(token);
       const response = await this.partnerClient.get(
-        `/partner/app/${appId}/ratings`,
+        `/partner/app/${encodeURIComponent(appId)}/ratings`,
         {
           headers: {
             Authorization: `Bearer ${raw}`,
@@ -1198,7 +1198,7 @@ export class GupshupClientService {
       body.append('contactNumber', input.contactNumber || '0000000000');
 
       const response = await this.partnerClient.put(
-        `/partner/app/${input.appId}/onboarding/contact`,
+        `/partner/app/${encodeURIComponent(input.appId)}/onboarding/contact`,
         body.toString(),
         {
           headers: {
@@ -1222,7 +1222,7 @@ export class GupshupClientService {
       query.append('v', 'v3');
       if (vertical) query.append('vertical', vertical);
 
-      const response = await this.partnerClient.get(`/partner/app/${appId}/template/metalibrary?${query.toString()}`, {
+      const response = await this.partnerClient.get(`/partner/app/${encodeURIComponent(appId)}/template/metalibrary?${query.toString()}`, {
         headers,
         timeout: 15000,
       });
@@ -1241,7 +1241,7 @@ export class GupshupClientService {
     components: any[];
   }) {
     return this.withDualAuth(appId, async (headers) => {
-      const response = await this.partnerClient.post(`/partner/app/${appId}/template/metalibrary?v=v3`, payload, {
+      const response = await this.partnerClient.post(`/partner/app/${encodeURIComponent(appId)}/template/metalibrary?v=v3`, payload, {
         headers,
         timeout: 15000,
       });
@@ -1264,7 +1264,7 @@ export class GupshupClientService {
 
       try {
         const response = await this.partnerClient.put(
-          `/partner/app/${appId}/business/profile`,
+          `/partner/app/${encodeURIComponent(appId)}/business/profile`,
           sanitizedPayload,
           {
             headers,
@@ -1277,7 +1277,7 @@ export class GupshupClientService {
         if (status === 405 || status === 400) {
           console.log(`[GupshupProfile] PUT failed with ${status}. Falling back to POST...`);
           const response = await this.partnerClient.post(
-            `/partner/app/${appId}/business/profile`,
+            `/partner/app/${encodeURIComponent(appId)}/business/profile`,
             sanitizedPayload,
             {
               headers,

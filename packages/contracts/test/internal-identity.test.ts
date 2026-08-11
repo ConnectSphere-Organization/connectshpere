@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { signInternalIdentity, verifyInternalIdentity } from '../src/internal-identity';
 
-const secret = 'a-secure-internal-service-secret-that-is-long-enough';
+const secret = process.env.INTERNAL_SERVICE_SECRET || 'dummy-test-key-for-unit-tests-only';
 const claims = {
     typ: 'internal_identity' as const,
     sub: '507f1f77bcf86cd799439011',

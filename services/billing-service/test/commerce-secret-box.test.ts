@@ -5,7 +5,7 @@ process.env.COMMERCE_SETTINGS_ENCRYPTION_KEY = 'test-only-commerce-encryption-ke
 
 test('commerce credentials are encrypted at rest and decrypt for payment processing', async () => {
   const { encryptCommerceSecret, decryptCommerceSecret } = await import('../src/services/commerce-secret-box');
-  const secret = 'rzp_test_secret_value';
+  const secret = process.env.TEST_SECRET || 'dummy-test-secret-value';
   const encrypted = encryptCommerceSecret(secret);
 
   assert.ok(encrypted?.startsWith('enc:v1:'));
