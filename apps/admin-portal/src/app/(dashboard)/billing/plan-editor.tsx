@@ -254,8 +254,8 @@ export function PlanEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl p-0 overflow-hidden gap-0">
-        <div className="flex max-h-[85vh] min-h-[560px]">
+      <DialogContent className="sm:max-w-4xl h-[85dvh] max-h-[720px] p-0 overflow-hidden gap-0">
+        <div className="flex h-full min-h-0">
           {/* Wizard rail */}
           <aside className="w-56 shrink-0 border-r border-border bg-muted/30 p-5 flex flex-col gap-6">
             <div className="flex items-center gap-2">
@@ -315,7 +315,7 @@ export function PlanEditorDialog({
           </aside>
 
           {/* Content */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex min-h-0 flex-col min-w-0">
             <DialogHeader className="px-6 py-4 border-b border-border space-y-0.5 text-left">
               <div className="flex items-center justify-between">
                 <DialogTitle>{current.title}</DialogTitle>
@@ -326,7 +326,7 @@ export function PlanEditorDialog({
               <DialogDescription>{current.desc}</DialogDescription>
             </DialogHeader>
 
-            <ScrollArea className="flex-1">
+            <ScrollArea className="min-h-0 flex-1">
               <div className="p-6">
                 {step === 1 && <StepIdentity form={form} patch={patch} />}
                 {step === 2 && (
