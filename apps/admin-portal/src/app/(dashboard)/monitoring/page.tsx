@@ -25,12 +25,12 @@ interface ServiceHealth {
   tier?: string;
   status: "up" | "down";
   latencyMs: number | null;
+  database: { name: string; status: string };
   control: ServiceControl;
 }
 
 interface MonitoringData {
   services: ServiceHealth[];
-  databases: { name: string; status: string }[];
   process: { uptimeSec: number; memoryRssMb: number; nodeVersion: string; mongooseVersion: string };
   generatedAt: string;
 }
@@ -83,7 +83,7 @@ export default function MonitoringPage() {
     <>
       <PageHeader
         title="Monitoring"
-        description="Live service health, databases, and process metrics"
+        description="Live service and database health, with process metrics"
         actions={
           isFetching ? (
             <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -110,7 +110,7 @@ export default function MonitoringPage() {
                     ))
                   : data?.services.map((s) => (
                       <Card key={s.id}>
-                        <CardContent className="p-4 space-y-4">
+                        <CardContent className="p-4 space-y-3">
                           <div className="flex items-center justify-between gap-3">
                             <div>
                               <p className="font-medium text-sm">{s.name}</p>
@@ -125,6 +125,15 @@ export default function MonitoringPage() {
                                 {s.status}
                               </Badge>
                             </div>
+                          </div>
+                          <div className="flex items-center justify-between border-t pt-3 text-xs">
+                            <span className="flex items-center gap-1.5 text-muted-foreground">
+                              <Database className="h-3.5 w-3.5" />
+                              Database · <span className="font-medium capitalize text-foreground">{s.database.name}</span>
+                            </span>
+                            <Badge variant={s.database.status === "connected" ? "success" : "outline"}>
+                              {s.database.status}
+                            </Badge>
                           </div>
                           <div className="grid grid-cols-3 gap-3 border-t pt-3">
                             <ServiceSwitch
@@ -146,32 +155,6 @@ export default function MonitoringPage() {
                               onChange={(maintenance) => patchServiceControl(s, { maintenance })}
                             />
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                <Database className="h-4 w-4" /> Databases
-              </h2>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {isLoading
-                  ? Array.from({ length: 4 }).map((_, i) => (
-                      <Card key={i}>
-                        <CardContent className="p-4">
-                          <Skeleton className="h-5 w-24" />
-                        </CardContent>
-                      </Card>
-                    ))
-                  : data?.databases.map((d) => (
-                      <Card key={d.name}>
-                        <CardContent className="flex items-center justify-between p-4">
-                          <p className="font-medium text-sm capitalize">{d.name}</p>
-                          <Badge variant={d.status === "connected" ? "success" : "outline"}>
-                            {d.status}
-                          </Badge>
                         </CardContent>
                       </Card>
                     ))}

@@ -14,6 +14,7 @@ interface ServiceHealth {
   tier: string;
   status: "up" | "down";
   latencyMs: number | null;
+  database: { name: DbName; status: string };
   control: ServiceControl;
   detail?: unknown;
 }
@@ -93,23 +94,10 @@ export async function GET() {
         ? features.serviceControls as Record<string, unknown>
         : {};
 
-    const services: ServiceHealth[] = await Promise.all(
-      SERVICES.map(async (svc) => {
-        const r = await probe(svc.baseUrl, svc.healthPath);
-        return {
-          id: svc.id,
-          name: svc.name,
-          tier: svc.tier,
-          status: r.ok ? "up" : "down",
-          latencyMs: r.latencyMs,
-          control: normalizeControl(serviceControls[svc.id]),
-          detail: r.detail,
-        } as ServiceHealth;
-      })
-    );
-
-    // Database connection states (best-effort; connecting on demand).
-    const dbNames: DbName[] = ["core", "billing", "campaign", "automation"];
+    // Open every database once, then include its live status on the related
+    // service card. This keeps the monitoring view actionable without a
+    // disconnected database-only section.
+    const dbNames: DbName[] = ["core", "billing", "campaign", "automation", "bsp"];
     const databases = await Promise.all(
       dbNames.map(async (name) => {
         try {
@@ -120,10 +108,26 @@ export async function GET() {
         }
       })
     );
+    const databaseByName = new Map(databases.map((database) => [database.name, database]));
+
+    const services: ServiceHealth[] = await Promise.all(
+      SERVICES.map(async (svc) => {
+        const r = await probe(svc.baseUrl, svc.healthPath);
+        return {
+          id: svc.id,
+          name: svc.name,
+          tier: svc.tier,
+          status: r.ok ? "up" : "down",
+          latencyMs: r.latencyMs,
+          database: databaseByName.get(svc.database) || { name: svc.database, status: "unknown" },
+          control: normalizeControl(serviceControls[svc.id]),
+          detail: r.detail,
+        } as ServiceHealth;
+      })
+    );
 
     return NextResponse.json({
       services,
-      databases,
       process: {
         uptimeSec: Math.round(process.uptime()),
         memoryRssMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
