@@ -14,9 +14,10 @@ metadata:
     {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
-  {{- if eq .Release.Name "customer-portal" }}
-  # This ingress owns the public customer hostname. Cert-manager provisions
-  # the certificate once here; the API gateway shares the hostname for /api.
+  {{- if .Values.ingress.host }}
+  # Every public portal hostname requires its own certificate. The customer
+  # portal shares its hostname with the API gateway; Admin has a distinct
+  # hostname and therefore must not rely on the customer's TLS secret.
   tls:
     - hosts:
         - {{ .Values.ingress.host | quote }}
