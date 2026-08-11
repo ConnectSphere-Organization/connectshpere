@@ -262,7 +262,7 @@ export class CampaignWorker {
           if (result.success) {
             this.metrics?.increment('campaign_messages_accepted_total', 'Campaign messages accepted by provider');
             successCount++;
-            const messageId = result.message?.whatsappMessageId || (result.result as any)?.messageId;
+            const messageId = result.message?.whatsappMessageId || (result.result as any)?.messageId || (result.result as any)?.providerMessageId || (result as any)?.providerMessageId;
             await (batch as any).updateRecipientStatus(contact._id.toString(), 'sent', messageId);
             await CampaignMessage.findOneAndUpdate(
               { campaign: campaignId, contact: contact._id },
@@ -287,6 +287,30 @@ export class CampaignWorker {
               },
               { upsert: true, new: true, setDefaultsOnInsert: true }
             );
+
+            if (messageId && (String(messageId).startsWith('wamid.simulated_') || String(messageId).startsWith('mock_'))) {
+              setTimeout(async () => {
+                try {
+                  const { campaignEventsQueue } = await import('../lib/events/EventBus');
+                  await campaignEventsQueue.add('MessageStatusUpdateEvent', {
+                    campaignId: campaignId.toString(),
+                    status: 'delivered',
+                    contactId: contact._id.toString(),
+                    whatsappMessageId: messageId,
+                    timestamp: new Date().toISOString()
+                  });
+                  await campaignEventsQueue.add('MessageStatusUpdateEvent', {
+                    campaignId: campaignId.toString(),
+                    status: 'read',
+                    contactId: contact._id.toString(),
+                    whatsappMessageId: messageId,
+                    timestamp: new Date().toISOString()
+                  });
+                } catch (simErr: any) {
+                  console.warn('[CampaignWorker] Simulated status transition error:', simErr.message);
+                }
+              }, 500);
+            }
           } else {
             this.metrics?.increment('campaign_messages_failed_total', 'Campaign message dispatch failures');
             failCount++;

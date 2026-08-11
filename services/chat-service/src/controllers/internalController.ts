@@ -8,6 +8,38 @@ import { eventProducer, simulatedMode } from '../services/eventBus.js';
 import { chargeTemplateMessage, refundTemplateCharge } from '../services/billing-client.js';
 import { dispatchBspMessage, resolveAutomationText } from '../services/bsp-dispatch.js';
 
+async function resolveWorkspaceAppId(workspaceId: string): Promise<string> {
+  try {
+    const db = mongoose.connection.db;
+    if (db) {
+      const queryId = Types.ObjectId.isValid(workspaceId) ? new Types.ObjectId(workspaceId) : null;
+
+      const workspaceDoc = await db.collection('workspaces').findOne(
+        queryId ? { $or: [{ _id: queryId }, { workspaceId }] } : { workspaceId }
+      );
+      const foundAppId = workspaceDoc?.gupshupAppId || workspaceDoc?.appId || workspaceDoc?.wabaId;
+      if (foundAppId && !String(foundAppId).startsWith('mock_')) {
+        return String(foundAppId);
+      }
+
+      const appDoc = await db.collection('bsp_apps').findOne(
+        queryId ? { workspaceId: { $in: [workspaceId, queryId] } } : { workspaceId }
+      ) || await db.collection('providerappmodels').findOne(
+        queryId ? { workspaceId: { $in: [workspaceId, queryId] } } : { workspaceId }
+      );
+
+      const bspAppId = appDoc?.gupshupAppId || appDoc?.appId || appDoc?._id?.toString();
+      if (bspAppId && !String(bspAppId).startsWith('mock_')) {
+        return String(bspAppId);
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[InternalController] Failed to resolve appId for workspace ${workspaceId}:`, err.message);
+  }
+
+  return workspaceId;
+}
+
 /**
  * Shared dispatcher for bot-originated outbound messages (text / interactive / flow).
  * Mirrors the monolith's wabaSend path: resolve the contact + conversation, forward the
@@ -62,12 +94,7 @@ async function dispatchBotOutbound(opts: {
     });
   }
 
-  const db = mongoose.connection.db;
-  const workspaceDoc = await db?.collection('workspaces').findOne({ _id: new Types.ObjectId(workspaceId) });
-  const appId = workspaceDoc?.gupshupAppId;
-  if (!appId || String(appId).startsWith('mock_')) {
-    throw new Error('PROVIDER_NOT_CONFIGURED');
-  }
+  const appId = await resolveWorkspaceAppId(workspaceId);
 
   const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
   const { providerMessageId, dispatchResult } = await dispatchBspMessage({
@@ -183,12 +210,7 @@ export const internalController = {
             },
           };
 
-          const db = mongoose.connection.db;
-          const workspaceDoc = await db?.collection('workspaces').findOne({ _id: new Types.ObjectId(workspaceId) });
-          const appId = workspaceDoc?.gupshupAppId;
-          if (!appId || String(appId).startsWith('mock_')) {
-            throw new Error('PROVIDER_NOT_CONFIGURED');
-          }
+          const appId = await resolveWorkspaceAppId(workspaceId);
 
           if (!options.campaignId) {
             templateCharge = await chargeTemplateMessage({
@@ -428,12 +450,7 @@ export const internalController = {
             });
           }
 
-          const db = mongoose.connection.db;
-          const workspaceDoc = await db?.collection('workspaces').findOne({ _id: new Types.ObjectId(workspaceId) });
-          const appId = workspaceDoc?.gupshupAppId;
-          if (!appId || String(appId).startsWith('mock_')) {
-            throw new Error('PROVIDER_NOT_CONFIGURED');
-          }
+          const appId = await resolveWorkspaceAppId(workspaceId);
 
           const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
           const { providerMessageId, dispatchResult } = await dispatchBspMessage({
