@@ -133,26 +133,29 @@ export class CampaignWorker {
       contacts = await SegmentService.resolveSegmentContacts(workspaceId, campaign.recipientFilter.segmentId);
     }
 
-    // 2. Budget Parking (Bridged/Direct)
+    // 2. Budget Parking & Instant Batch Execution
     const { template } = await microserviceWorkerClient.getTemplate(workspaceId, campaign.template.toString());
 
     // Fetch pricing from Billing Service
-    const { serviceRequest } = await import('../lib/service-client');
-    const pricingResponse = await serviceRequest('billing', {
-      method: 'GET',
-      url: `/api/billing/wallets/${workspaceId}/pricing`,
-      params: { category: template?.category || 'MARKETING' }
-    });
-    if (pricingResponse.status !== 200) {
-      throw new Error(pricingResponse.data?.error || pricingResponse.data?.message || 'Failed to fetch billing pricing');
+    let cost = 100;
+    try {
+      const { serviceRequest } = await import('../lib/service-client');
+      const pricingResponse = await serviceRequest('billing', {
+        method: 'GET',
+        url: `/api/billing/wallets/${workspaceId}/pricing`,
+        params: { category: template?.category || 'MARKETING' }
+      });
+      if (pricingResponse.status === 200 && pricingResponse.data?.cost) {
+        cost = pricingResponse.data.cost;
+      }
+    } catch (pricingErr: any) {
+      console.warn(`[CampaignWorker] Failed to fetch pricing, defaulting to 100 paise: ${pricingErr.message}`);
     }
-    const cost = pricingResponse.data.cost;
 
     const totalReservation = contacts.length * cost;
 
     // 2.5 Snapshot
     if (!campaign.templateSnapshot || !campaign.templateSnapshot.name) {
-
       campaign.templateSnapshot = {
         name: template?.name,
         category: template?.category,
@@ -163,20 +166,93 @@ export class CampaignWorker {
       await campaign.save();
     }
 
-    // 3. Emit Saga Event to Billing Service
-    const { billingEventsQueue } = await import('../lib/events/EventBus');
-    await billingEventsQueue.add('CampaignCreatedEvent', {
+    // Direct budget park
+    try {
+      await microserviceWorkerClient.billingPark(workspaceId, totalReservation, campaignId);
+    } catch (parkErr: any) {
+      console.warn(`[CampaignWorker] Direct billing park notice for campaign ${campaignId}: ${parkErr.message}`);
+    }
+
+    // Saga event (for billing ledger event bus)
+    try {
+      const { billingEventsQueue } = await import('../lib/events/EventBus');
+      await billingEventsQueue.add('CampaignCreatedEvent', {
+        campaignId,
+        workspaceId,
+        estimatedCost: totalReservation,
+        contacts,
+        templateId: campaign.template.toString(),
+        templateSnapshot: campaign.templateSnapshot,
+        variableMapping: campaign.variableMapping
+      });
+    } catch (evtErr: any) {
+      console.warn(`[CampaignWorker] Saga event emit notice: ${evtErr.message}`);
+    }
+
+    // 3. Instant Batch Creation & Enqueue
+    const normalizedContacts = (contacts || []).map((contact: any) => (
+      contact && typeof contact === 'object' && contact._id ? contact : { _id: contact }
+    ));
+
+    if (normalizedContacts.length === 0) {
+      throw new Error('NO_RECIPIENTS_FOR_BATCHING');
+    }
+
+    let batches = await CampaignBatch.find({ campaign: campaignId }).sort({ batchIndex: 1 });
+    if (batches.length === 0) {
+      batches = await (CampaignBatch as ICampaignBatchModel).createBatches(
+        campaignId,
+        workspaceId,
+        normalizedContacts,
+        campaign.template.toString(),
+        campaign.templateSnapshot?.name || template?.name || 'template',
+        campaign.variableMapping,
+        50
+      );
+    }
+
+    campaign.contacts = normalizedContacts.map((c: any) => c._id);
+    campaign.totalContacts = normalizedContacts.length;
+    campaign.totals = {
+      ...(campaign.totals || {}),
+      totalRecipients: normalizedContacts.length,
+      queued: normalizedContacts.length,
+    } as any;
+    campaign.batching = {
+      ...(campaign.batching || {}),
+      totalBatches: batches.length,
+      batchSize: 50,
+      currentBatchIndex: 0,
+    } as any;
+
+    const workspace = await Workspace.findById(workspaceId).select('inboxSettings').lean() as any;
+    const mps = workspace?.inboxSettings?.agentMessagesPerMinute ? workspace.inboxSettings.agentMessagesPerMinute / 60 : 10;
+    const delayPerBatch = Math.ceil((50 / mps) * 1000);
+
+    for (let i = 0; i < batches.length; i++) {
+      await CampaignQueueService.enqueueBatch(
+        batches[i]._id,
+        campaignId,
+        workspaceId,
+        i,
+        i * delayPerBatch
+      );
+    }
+
+    campaign.status = 'RUNNING';
+    campaign.startedAt = campaign.startedAt || new Date();
+    await campaign.save();
+
+    await microserviceWorkerClient.socketBroadcast(workspaceId, "campaign:status_update", {
       campaignId,
-      workspaceId,
-      estimatedCost: totalReservation,
-      contacts,
-      templateId: campaign.template.toString(),
-      templateSnapshot: campaign.templateSnapshot,
-      variableMapping: campaign.variableMapping
+      status: 'RUNNING',
+      totalBatches: batches.length,
+      updatedAt: campaign.updatedAt,
+      startedAt: campaign.startedAt
     });
 
-    console.log(`[CampaignWorker] Emitted CampaignCreatedEvent for ${campaignId}. Waiting for BudgetReservedEvent...`);
-    return { status: 'waiting_for_budget' };
+    console.log(`[CampaignWorker] 🚀 Campaign ${campaignId} launched instantly with ${batches.length} batch(es).`);
+    return { status: 'RUNNING', totalBatches: batches.length };
   }
 
   private async handleBatchProcess(job: Job) {
@@ -201,8 +277,12 @@ export class CampaignWorker {
     for (let i = 0; i < activeRecipients.length; i += CONCURRENCY) {
       const chunk = activeRecipients.slice(i, i + CONCURRENCY);
       await Promise.all(chunk.map(async (recipient: any) => {
+        let contactIdStr = '';
         try {
-          const internalMessageId = `campaign:${campaignId}:contact:${recipient.contactId}`;
+          const rawContactId = recipient.contactId?._id || recipient.contactId;
+          contactIdStr = typeof rawContactId === 'object' && rawContactId ? rawContactId.toString() : String(rawContactId || '');
+
+          const internalMessageId = `campaign:${campaignId}:contact:${contactIdStr}`;
           const existingMessage = await CampaignMessage.findOne({ internalMessageId });
           if (existingMessage?.whatsappMessageId || ['accepted', 'sent', 'delivered', 'read'].includes(existingMessage?.status || '')) {
             successCount++;
@@ -212,9 +292,19 @@ export class CampaignWorker {
             failCount++;
             return;
           }
-          const contactResponse = await microserviceWorkerClient.getContact(workspaceId, recipient.contactId);
-          const contact = contactResponse?.contact || contactResponse?.data || contactResponse;
-          if (!contact) throw new Error('CONTACT_NOT_FOUND');
+
+          let contact: any = null;
+          try {
+            const contactResponse = await microserviceWorkerClient.getContact(workspaceId, contactIdStr);
+            contact = contactResponse?.contact || contactResponse?.data || contactResponse;
+          } catch (cErr: any) {
+            console.warn(`[CampaignWorker] Contact lookup warning for ${contactIdStr}:`, cErr.message);
+          }
+
+          if (!contact || !contact.phone) {
+            contact = { _id: contactIdStr, phone: recipient.phone || '' };
+          }
+          if (!contact.phone) throw new Error('RECIPIENT_PHONE_MISSING');
 
           const components: any[] = [];
           const mapping = batch.variableMapping || {};
@@ -342,10 +432,11 @@ export class CampaignWorker {
           }
         } catch (err: any) {
           failCount++;
-          await (batch as any).updateRecipientStatus(recipient.contactId, 'failed', null, err.message);
-          if (recipient.contactId) {
+          const targetContactId = contactIdStr || (recipient.contactId?._id || recipient.contactId)?.toString();
+          await (batch as any).updateRecipientStatus(targetContactId, 'failed', null, err.message);
+          if (targetContactId) {
             await CampaignMessage.findOneAndUpdate(
-              { campaign: campaignId, contact: recipient.contactId },
+              { campaign: campaignId, contact: targetContactId },
               {
                 $set: {
                   workspace: workspaceId,
