@@ -209,7 +209,8 @@ export async function updateDocument(database: DbName, collection: string, id: s
 
   // Guard against dangerous operators in the update payload.
   const json = JSON.stringify(update);
-  if (/\$where|\$function|\$accumulator|\$expr/.test(json)) {
+  const prohibited = ["$where", "$function", "$accumulator", "$expr"];
+  if (prohibited.some((op) => json.includes(op))) {
     throw new Error("Update contains prohibited operators");
   }
 

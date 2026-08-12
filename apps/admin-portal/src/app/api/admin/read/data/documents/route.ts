@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
     } catch {
       return NextResponse.json({ message: "Invalid filter JSON" }, { status: 400 });
     }
-    if (/\$where|\$function|\$accumulator|\$expr/.test(JSON.stringify(filter))) {
+    const prohibited = ["$where", "$function", "$accumulator", "$expr"];
+    if (prohibited.some((op) => JSON.stringify(filter).includes(op))) {
       return NextResponse.json(
         { message: "Filter contains prohibited operators ($where, $function, $accumulator, $expr)" },
         { status: 400 }

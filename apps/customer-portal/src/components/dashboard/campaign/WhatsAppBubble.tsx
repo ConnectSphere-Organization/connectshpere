@@ -10,19 +10,29 @@ interface WhatsAppBubbleProps {
 }
 
 export function WhatsAppBubble({ template, variableMapping = {}, mediaUrl }: WhatsAppBubbleProps) {
-  const replaceVariables = (text: string) => {
-    if (!text) return '';
-    return text.replace(/\{\{(\d+)\}\}/g, (match, num) => {
-      const mapped = variableMapping[num];
-      return mapped ? (
-        `<span class="bg-primary/20 text-primary px-1 rounded font-bold">${mapped}</span>`
-      ) : match;
+  const renderFormattedText = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(\{\{\d+\}\})/g);
+    return parts.map((part, index) => {
+      const match = part.match(/^\{\{(\d+)\}\}$/);
+      if (match) {
+        const num = match[1];
+        const mapped = variableMapping[num];
+        return mapped ? (
+          <span key={index} className="bg-primary/20 text-primary px-1 rounded font-bold">
+            {mapped}
+          </span>
+        ) : (
+          part
+        );
+      }
+      return part;
     });
   };
 
   const bodyContent = (() => {
     const text = template.bodyText || template.body?.text || '';
-    return replaceVariables(text);
+    return renderFormattedText(text);
   })();
 
   const headerContent = (() => {
@@ -31,7 +41,7 @@ export function WhatsAppBubble({ template, variableMapping = {}, mediaUrl }: Wha
     if (template.header.format === 'TEXT') {
       return (
         <div className="font-bold text-slate-900 dark:text-white mb-1">
-          <div dangerouslySetInnerHTML={{ __html: replaceVariables(template.header.text || '') }} />
+          <div>{renderFormattedText(template.header.text || '')}</div>
         </div>
       );
     }
@@ -87,8 +97,9 @@ export function WhatsAppBubble({ template, variableMapping = {}, mediaUrl }: Wha
           <div 
             className="text-[14.5px] leading-[1.45] text-[#111b21] dark:text-[#e9edef] whitespace-pre-wrap font-normal selection:bg-primary/30"
             style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
-            dangerouslySetInnerHTML={{ __html: bodyContent }}
-          />
+          >
+            {bodyContent}
+          </div>
           
           <div className="flex items-center justify-end gap-1 mt-0.5">
             {template.footer?.enabled && template.footer.text && (
