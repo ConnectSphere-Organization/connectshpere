@@ -42,7 +42,7 @@ export class WorkspaceAuthGuard implements CanActivate {
         throw new UnauthorizedException('No token provided');
       }
 
-      const decoded = jwt.verify(token, jwtSecret) as any;
+      const decoded = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] }) as any;
 
       if (!decoded.id && !decoded.workspaceId && !decoded.userId) {
         throw new UnauthorizedException('Invalid token payload');

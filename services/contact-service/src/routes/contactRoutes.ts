@@ -23,6 +23,23 @@ import { authenticate } from '../middleware/auth.js';
 import { publishContactEvent } from '../services/eventBus.js';
 
 const router = Router();
+
+const rateLimiterStore = new Map<string, number[]>();
+const contactRateLimiter = (req: any, res: any, next: any) => {
+  const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000;
+  const max = 500;
+  const timestamps = (rateLimiterStore.get(ip) || []).filter(t => now - t < windowMs);
+  if (timestamps.length >= max) {
+    return res.status(429).json({ message: 'Too many requests, please try again later.' });
+  }
+  timestamps.push(now);
+  rateLimiterStore.set(ip, timestamps);
+  next();
+};
+
+router.use(contactRateLimiter);
 const internalAuth = (req: any, res: any, next: any) => {
   const expected = process.env.INTERNAL_SERVICE_SECRET!;
   if (req.header('x-internal-service-secret') !== expected) {

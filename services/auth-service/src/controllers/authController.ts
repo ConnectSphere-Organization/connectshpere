@@ -423,7 +423,7 @@ export const resetPassword = async (req: express.Request, res: express.Response)
 
     let decoded: any;
     try {
-      decoded = jwt.verify(token, config.jwtSecret);
+      decoded = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] });
     } catch {
       return res.status(400).json({ success: false, message: 'Invalid or expired token' });
     }
@@ -593,10 +593,10 @@ export const switchWorkspace = async (req: express.Request, res: express.Respons
     if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
     const { workspaceId } = req.body || {};
-    const membership = await Permission.findOne({ workspace: workspaceId, user: user._id });
+    const membership = await Permission.findOne({ workspace: String(workspaceId), user: user._id });
     if (!membership) return res.status(403).json({ success: false, message: 'Access denied to this workspace' });
 
-    await User.findByIdAndUpdate(user._id, { activeWorkspace: workspaceId });
+    await User.findByIdAndUpdate(user._id, { activeWorkspace: String(workspaceId) });
 
     try {
       const { invalidateCache } = await import('../utils/redis.js');
@@ -619,7 +619,7 @@ export const getInvitation = async (req: express.Request, res: express.Response)
       return res.status(400).json({ success: false, error: 'Token and Email are required' });
     }
 
-    const invitation: any = await WorkspaceInvitation.findOne({ token }).populate('workspace', 'name');
+    const invitation: any = await WorkspaceInvitation.findOne({ token: String(token) }).populate('workspace', 'name');
     if (!invitation) return res.status(404).json({ success: false, error: 'Invalid or expired invitation' });
 
     if (invitation.email.toLowerCase() !== email) {
@@ -678,7 +678,7 @@ export const acceptInvitation = async (req: express.Request, res: express.Respon
     }
 
     const cleanEmail = String(email).trim().toLowerCase();
-    const invitation: any = await WorkspaceInvitation.findOne({ token });
+    const invitation: any = await WorkspaceInvitation.findOne({ token: String(token) });
     if (!invitation) return res.status(404).json({ success: false, error: 'Invalid invitation token.' });
 
     if (invitation.email.toLowerCase() !== cleanEmail) {
@@ -888,7 +888,7 @@ export const verifySession = async (req: express.Request, res: express.Response)
 
     let decoded: any;
     try {
-      decoded = jwt.verify(token, config.jwtSecret);
+      decoded = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] });
     } catch {
       return res.status(401).json({ success: false, message: 'Token signature is invalid' });
     }
@@ -927,7 +927,7 @@ export const verifySession = async (req: express.Request, res: express.Response)
       if (firstMembership) {
         workspaceId = firstMembership.workspace;
         user.activeWorkspace = workspaceId;
-        await User.findByIdAndUpdate(user._id, { activeWorkspace: workspaceId });
+        await User.findByIdAndUpdate(user._id, { activeWorkspace: String(workspaceId) });
       }
     }
 

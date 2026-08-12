@@ -36,6 +36,22 @@ function getMetaAdsRedirectUri(req: AuthRequest) {
   return process.env.META_ADS_REDIRECT_URI || `${getApiOrigin(req)}/api/v1/integrations/meta-ads/callback`;
 }
 
+function sanitizeRedirectUrl(targetUrl: string, fallback: string = '/'): string {
+  if (!targetUrl || typeof targetUrl !== 'string') return fallback;
+  if (targetUrl.startsWith('/') && !targetUrl.startsWith('//')) {
+    return targetUrl;
+  }
+  try {
+    const parsed = new URL(targetUrl);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return targetUrl;
+    }
+  } catch {
+    return fallback;
+  }
+  return fallback;
+}
+
 function sendMetaAdsError(res: Response, err: any) {
   const message = err?.response?.data?.error?.message || err?.message || 'Meta Ads request failed';
   const notConfigured = message.includes('META_ADS_CLIENT_ID') || message.includes('META_ADS_CLIENT_SECRET') || message.includes('not configured');
@@ -365,7 +381,8 @@ export const integrationController = {
       (integration as any).setEncryptedConfig({ tokens, connectedAt: new Date().toISOString() });
       await integration.save();
 
-      res.redirect(parsedState.returnTo || getReturnTo(req));
+      const safeReturnTo = sanitizeRedirectUrl(parsedState.returnTo || getReturnTo(req));
+      res.redirect(safeReturnTo);
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
@@ -438,7 +455,8 @@ export const integrationController = {
       const returnTo = parsedState.returnTo || getMetaAdsReturnTo(req);
 
       if (error) {
-        return res.redirect(`${returnTo}${returnTo.includes('?') ? '&' : '?'}error=${encodeURIComponent(String(error_description || error))}`);
+        const dest = `${returnTo}${returnTo.includes('?') ? '&' : '?'}error=${encodeURIComponent(String(error_description || error))}`;
+        return res.redirect(sanitizeRedirectUrl(dest));
       }
 
       if (!code) return res.status(400).json({ message: 'Missing Meta authorization code' });
@@ -505,7 +523,8 @@ export const integrationController = {
       });
       await integration.save();
 
-      res.redirect(`${returnTo.replace(/meta_ads=connected/g, 'meta_ads=connected')}`);
+      const successDest = `${returnTo.replace(/meta_ads=connected/g, 'meta_ads=connected')}`;
+      res.redirect(sanitizeRedirectUrl(successDest));
     } catch (err: any) {
       res.status(500).json({ message: err?.response?.data?.error?.message || err.message });
     }

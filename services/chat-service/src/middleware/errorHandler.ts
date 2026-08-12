@@ -8,7 +8,7 @@ export function errorHandler(err: any, req: Request, res: Response, next: NextFu
 
   const formatted = formatErrorResponse(err);
 
-  console.error(`[Error Handler] [${req.method} ${req.url}]`, err);
+  console.error("[Error Handler]", req.method, String(req.path), err);
 
   res.status(formatted.error.statusCode).json(formatted);
 }

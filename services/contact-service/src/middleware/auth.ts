@@ -93,7 +93,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
     }
 
     // Decode JWT token
-    const decoded: any = jwt.verify(token, JWT_SECRET);
+    const decoded: any = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
     const userId = decoded.id;
 
     const db = mongoose.connection.db;

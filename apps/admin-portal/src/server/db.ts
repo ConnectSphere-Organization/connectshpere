@@ -48,7 +48,18 @@ const cache: ConnCache = globalForDb.__adminDbCache ?? (globalForDb.__adminDbCac
  * first use. Read-only intent — never use these connections to perform
  * platform mutations (those go through the gateway).
  */
+const ALLOWED_DBS: Record<DbName, boolean> = {
+  core: true,
+  billing: true,
+  campaign: true,
+  automation: true,
+  bsp: true,
+};
+
 export async function getConnection(db: DbName = "core"): Promise<Connection> {
+  if (!db || !Object.prototype.hasOwnProperty.call(ALLOWED_DBS, db)) {
+    throw new Error(`Invalid database name: ${db}`);
+  }
   const entry = cache[db];
   if (entry.conn && entry.conn.readyState === 1) return entry.conn;
 

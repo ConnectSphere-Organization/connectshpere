@@ -78,21 +78,21 @@ export class MailService {
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
         const info = await transporter.sendMail(mailOptions);
-        console.log(`[MailService] Email sent successfully to ${options.to} (attempt ${attempt}/${this.MAX_RETRIES}): ${info.messageId}`);
+        console.log('[MailService] Email sent successfully to %s (attempt %d/%d): %s', options.to, attempt, this.MAX_RETRIES, info.messageId);
         return { success: true, method: 'smtp', messageId: info.messageId, attempt };
       } catch (error: any) {
         lastError = error;
-        console.error(`[MailService] Error sending email to ${options.to} (attempt ${attempt}/${this.MAX_RETRIES}):`, error.code, error.message);
+        console.error('[MailService] Error sending email to %s (attempt %d/%d):', options.to, attempt, this.MAX_RETRIES, error.code, error.message);
 
         if (attempt < this.MAX_RETRIES) {
           const delayMs = this.RETRY_DELAY_MS * Math.pow(2, attempt - 1);
-          console.log(`[MailService] Retrying in ${delayMs}ms...`);
+          console.log('[MailService] Retrying in %dms...', delayMs);
           await this.delay(delayMs);
         }
       }
     }
 
-    console.error(`[MailService] All ${this.MAX_RETRIES} attempts failed for ${options.to}: ${lastError?.message}`);
+    console.error('[MailService] All %d attempts failed for %s:', this.MAX_RETRIES, options.to, lastError?.message);
     return { success: false, method: 'smtp', error: lastError?.message, attempts: this.MAX_RETRIES };
   }
 

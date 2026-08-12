@@ -302,7 +302,7 @@ io.use(async (socket: any, next) => {
       return next(new Error('Unauthorized: missing auth token'));
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as any;
     if (!decoded || !decoded.id) {
       metrics.increment('websocket_authentication_failures_total', 'WebSocket authentication failures', { reason: 'invalid_token' });
       return next(new Error('Unauthorized: invalid token'));

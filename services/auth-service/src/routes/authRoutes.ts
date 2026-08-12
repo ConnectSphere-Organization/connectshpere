@@ -35,6 +35,23 @@ import { businessAuthMiddleware } from '../middleware/businessAuth.js';
 
 const router = Router();
 
+const rateLimiterStore = new Map<string, number[]>();
+const authRateLimiter = (req: any, res: any, next: any) => {
+  const ip = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000;
+  const max = 300;
+  const timestamps = (rateLimiterStore.get(ip) || []).filter(t => now - t < windowMs);
+  if (timestamps.length >= max) {
+    return res.status(429).json({ message: 'Too many requests, please try again later.' });
+  }
+  timestamps.push(now);
+  rateLimiterStore.set(ip, timestamps);
+  next();
+};
+
+router.use(authRateLimiter);
+
 /* --------------------------------- Signup --------------------------------- */
 router.post('/signup', signup);
 router.post('/verify-signup-otp', verifySignupOtp);

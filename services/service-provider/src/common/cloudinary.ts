@@ -52,10 +52,11 @@ export const uploadBufferToCloudinary = (
     const rawFilename = (options.originalFilename || '');
     const filenameWithoutExt = rawFilename.replace(/\.[^/.]+$/, "");
 
-    const safeFilename = filenameWithoutExt
+    let safeFilename = filenameWithoutExt
       .replace(/[^a-zA-Z0-9._-]/g, '_')
-      .replace(/_+/g, '_')
-      .replace(/^_+|_+$/g, '');
+      .replace(/_+/g, '_');
+    while (safeFilename.startsWith('_')) safeFilename = safeFilename.slice(1);
+    while (safeFilename.endsWith('_')) safeFilename = safeFilename.slice(0, -1);
 
     const hasName = safeFilename.length > 0;
     const publicId = hasName

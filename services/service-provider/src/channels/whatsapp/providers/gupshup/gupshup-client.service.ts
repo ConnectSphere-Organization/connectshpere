@@ -721,8 +721,9 @@ export class GupshupClientService {
 
   private generateUniqueTag(appId: string, url: string): string {
     const combined = `${appId}:${url}`;
+    const maxLen = Math.min(combined ? combined.length : 0, 4096);
     let hash = 0;
-    for (let i = 0; i < combined.length; i++) {
+    for (let i = 0; i < maxLen; i++) {
       hash = ((hash << 5) - hash) + combined.charCodeAt(i);
       hash |= 0;
     }

@@ -25,6 +25,7 @@ const metrics = new MetricsRegistry('api-gateway');
 let ready = true;
 
 app.set('trust proxy', 1);
+app.use(apiRateLimit);
 app.use(tracingMiddleware());
 app.use(metrics.middleware() as RequestHandler);
 

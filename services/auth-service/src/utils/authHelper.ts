@@ -29,10 +29,11 @@ export const createAuthToken = (user: any) =>
   }, config.jwtSecret, { expiresIn: config.authTokenTtl as any });
 
 export const setAuthCookie = (res: express.Response, token: string) => {
+  const isProd = config.env === 'production' || process.env.NODE_ENV === 'production';
   res.cookie(config.authCookieName, token, {
     httpOnly: true,
-    secure: config.env === 'production',
-    sameSite: config.env === 'production' ? 'none' : 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     path: '/',
     maxAge: config.authCookieMaxAgeMs,
   });
@@ -223,7 +224,7 @@ export async function buildSessionPayload(user: any) {
 }
 
 export async function resolveUserFromToken(token: string) {
-  const decoded = jwt.verify(token, config.jwtSecret) as any;
+  const decoded = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] }) as any;
   if (!decoded?.id) return null;
   return User.findById(decoded.id);
 }

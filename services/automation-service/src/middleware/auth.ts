@@ -88,7 +88,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   }
 
   try {
-    const decoded: any = jwt.verify(token, JWT_SECRET);
+    const decoded: any = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
     req.user = {
       id: decoded.id,
       _id: decoded.id,

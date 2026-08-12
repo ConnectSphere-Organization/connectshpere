@@ -19,8 +19,9 @@ export function parseCSV(content: string): string[][] {
   let row: string[] = [];
   let inQuotes = false;
   let currentVal = '';
+  const maxLen = Math.min(content ? content.length : 0, 50 * 1024 * 1024);
 
-  for (let i = 0; i < content.length; i++) {
+  for (let i = 0; i < maxLen; i++) {
     const char = content[i];
     const nextChar = content[i + 1];
 
